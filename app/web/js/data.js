@@ -54,8 +54,8 @@ export const DEFAULT_MISTAKES = [
 ];
 
 export const DEFAULT_MOCK_TESTS = [
-  { id: 1, testName: 'SSC CGL Full Length Mock 01', testDateStr: new Date().toISOString().split('T')[0], totalMarks: 200, marksScored: 148.5, totalQuestions: 100, attemptedQuestions: 88, correctQuestions: 78, incorrectQuestions: 10, cutoffMarks: 135, percentile: 92.4, accuracy: 88.6 },
-  { id: 2, testName: 'SSC CGL Tier I Live Test', testDateStr: new Date(Date.now() - 604800000).toISOString().split('T')[0], totalMarks: 200, marksScored: 136, totalQuestions: 100, attemptedQuestions: 82, correctQuestions: 72, incorrectQuestions: 10, cutoffMarks: 130, percentile: 86.1, accuracy: 87.8 }
+  { id: 1, testName: 'SSC CGL Full Length Mock 01', testPlatform: 'Testbook', testType: 'Full Length', testDateStr: new Date().toISOString().split('T')[0], totalMarks: 200, marksScored: 148.5, totalQuestions: 100, attemptedQuestions: 88, correctQuestions: 78, incorrectQuestions: 10, cutoffMarks: 135, percentile: 92.4, accuracy: 88.6 },
+  { id: 2, testName: 'SSC CGL Tier I Live Test', testPlatform: 'Oliveboard', testType: 'Full Length', testDateStr: new Date(Date.now() - 604800000).toISOString().split('T')[0], totalMarks: 200, marksScored: 136, totalQuestions: 100, attemptedQuestions: 82, correctQuestions: 72, incorrectQuestions: 10, cutoffMarks: 130, percentile: 86.1, accuracy: 87.8 }
 ];
 
 export const DEFAULT_GOALS = [

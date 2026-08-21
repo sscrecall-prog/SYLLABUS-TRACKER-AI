@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +53,13 @@ enum class HomeSearchFilter(val label: String) {
     TOPICS("Chapters"),
     WEAK("Weak Only"),
     REVISION_DUE("Revision Due")
+}
+
+enum class HomeDashboardTab(val label: String, val icon: ImageVector) {
+    OVERVIEW("Overview", Icons.Default.Dashboard),
+    TODAYS_PLAN("Daily Plan", Icons.Default.EventNote),
+    SUBJECTS("Subjects", Icons.Default.MenuBook),
+    INTELLIGENCE("Exam Insights", Icons.Default.AutoGraph)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,6 +95,7 @@ fun DashboardScreen(
     val intelligenceSnapshot by intelligenceViewModel.snapshot.collectAsState()
     val dailyBudget by intelligenceViewModel.dailyBudgetMinutes.collectAsState()
 
+    var activeTab by remember { mutableStateOf(HomeDashboardTab.OVERVIEW) }
     var showEditExamDialog by remember { mutableStateOf(false) }
     var showWeeklyReportDialog by remember { mutableStateOf(false) }
     var selectedSearchFilter by remember { mutableStateOf(HomeSearchFilter.ALL) }
@@ -136,12 +145,82 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)
     ) {
-        // 0. PERSISTENT SEARCH BAR (Always accessible at the top of Home)
+        // 0. TOP GREETING & TARGET EXAM BAR
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (appSettings.userName.isNotBlank()) "Hello, ${appSettings.userName} 👋" else "Hello, Aspirant 👋",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Track your syllabus, pace & daily revision",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Target Exam Countdown Chip
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = BrandForestGreen.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, BrandForestGreen.copy(alpha = 0.25f)),
+                    modifier = Modifier.clickable { showEditExamDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = null,
+                            tint = BrandForestGreen,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Column {
+                            Text(
+                                text = appSettings.targetExam.ifEmpty { "Target Exam" },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandForestGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (intelligenceSnapshot.pace.daysRemaining > 0) {
+                                Text(
+                                    text = "${intelligenceSnapshot.pace.daysRemaining} days left",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Target",
+                            tint = BrandForestGreen.copy(alpha = 0.7f),
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // 1. CLEAN PERSISTENT SEARCH BAR
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(
@@ -184,7 +263,7 @@ fun DashboardScreen(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     )
                 )
 
@@ -442,14 +521,12 @@ fun DashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    // Subject Chip Badge
                                     if (parentSubject != null) {
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(subjectColor.copy(alpha = 0.12f))
-                                                .clickable { onOpenSubject(parentSubject.id) }
-                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
                                         ) {
                                             Text(
                                                 text = parentSubject.name,
@@ -460,43 +537,14 @@ fun DashboardScreen(
                                         }
                                     }
 
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Status Chip
-                                        StatusBadge(status = chapter.status)
-
-                                        // Weak badge if applicable
-                                        if (chapter.isWeak || chapter.status == ChapterStatus.WEAK) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(StatusWeak.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text("🔴 Weak", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = StatusWeak)
-                                            }
-                                        }
-                                        if (chapter.isRevisionDue || chapter.status == ChapterStatus.REVISION_DUE) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(StatusRevisionDue.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text("🟣 Rev Due", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = StatusRevisionDue)
-                                            }
-                                        }
-                                    }
+                                    StatusBadge(status = chapter.status)
                                 }
 
                                 Spacer(modifier = Modifier.height(6.dp))
 
-                                // Chapter Title
                                 Text(
                                     text = chapter.title,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 2,
@@ -516,7 +564,6 @@ fun DashboardScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Action Row: Details, Focus Timer Shortcut, Confidence
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -539,7 +586,6 @@ fun DashboardScreen(
                                     }
 
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        // Focus Timer Button
                                         FilledTonalIconButton(
                                             onClick = {
                                                 timerViewModel.setTimerTargetById(parentSubject?.id, chapter.id)
@@ -555,7 +601,6 @@ fun DashboardScreen(
                                             )
                                         }
 
-                                        // Status quick toggle
                                         FilledTonalIconButton(
                                             onClick = {
                                                 val nextStatus = when (chapter.status) {
@@ -583,686 +628,856 @@ fun DashboardScreen(
                 }
             }
         } else {
-            // === STANDARD HOME DASHBOARD VIEW ===
+            // === CLEAN, PROFESSIONAL HOME DASHBOARD ===
 
-            // 00. DYNAMIC MINDSET & COGNITIVE STUDY HACKS HERO CARD
+            // 2. DASHBOARD SECTION NAVIGATION PILLS
             item {
-                com.example.ui.components.DailyMindsetCard(
-                    userName = appSettings.userName,
-                    currentAmbient = ambientSound,
-                    isAmbientPlaying = isAmbientPlaying,
-                    onSelectAmbient = { type -> timerViewModel.selectAmbientSound(type) },
-                    onToggleAmbient = { timerViewModel.toggleAmbientPlayPause() }
-                )
-            }
-
-            // 0. ADAPTIVE EXAM PACE & RECOVERY CARD
-            item {
-                AdaptiveExamPaceCard(
-                    pace = intelligenceSnapshot.pace,
-                    targetExamName = appSettings.targetExam,
-                    onEditExamDate = { showEditExamDialog = true }
-                )
-            }
-
-            // 0.1 EXAM READINESS ENGINE CARD
-            item {
-                ExamReadinessCard(
-                    readiness = intelligenceSnapshot.readiness,
-                    lastDaysMode = intelligenceSnapshot.lastDaysMode
-                )
-            }
-
-            // 0.2 TODAY'S ADAPTIVE PLAN CARD
-            item {
-                TodaysAdaptivePlanCard(
-                    plan = intelligenceSnapshot.todaysPlan,
-                    selectedBudgetMinutes = dailyBudget,
-                    onBudgetChanged = { intelligenceViewModel.setDailyBudgetMinutes(it) },
-                    onActionCompleted = { intelligenceViewModel.markPlanActionCompleted(it) },
-                    onActionClick = { item ->
-                        val ch = items.find { it.id == item.topicId }
-                        if (ch != null) syllabusViewModel.selectChapter(ch)
-                    }
-                )
-            }
-
-            // 0.3 PERFORMANCE TREND & FEEDBACK CARD (Sprint 3)
-            item {
-                PerformanceTrendDashboardCard(
-                    trendResult = intelligenceSnapshot.performanceTrends,
-                    weeklyReport = intelligenceSnapshot.weeklyReport,
-                    recurringMistakes = intelligenceSnapshot.recurringMistakes,
-                    onOpenWeeklyReport = { showWeeklyReportDialog = true }
-                )
-            }
-
-            // Gamified Study Streak and Aspirant Badges Showcase Card
-            item {
-                GamifiedAspirantCard(
-                    streakDays = overallStats.currentStreakDays,
-                    totalStudyMins = overallStats.totalStudyMinutes,
-                    completedChapters = overallStats.completedChapters,
-                    totalChapters = overallStats.totalChapters,
-                    mockCount = mockTests.size,
-                    resolvedMistakesCount = mistakeStats.understoodCount + mistakeStats.masteredCount
-                )
-            }
-
-            // 1. HERO BENTO CARD: Master Progress & Velocity
-            item {
-                GradientCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("dashboard_hero_bento"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = listOf(BrandForestGreen, Color(0xFF1B3313))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                    items(HomeDashboardTab.values()) { tab ->
+                        val isSelected = activeTab == tab
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            ),
+                            modifier = Modifier.clickable { activeTab = tab }
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(BrandTerracotta)
-                                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = "BENTO SYLLABUS HUB",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = "🔥 ${overallStats.currentStreakDays}d Streak",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = BrandWarmCream
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = "Syllabus Mastered",
-                                    fontSize = 23.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BrandWarmCream
-                                )
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = "${overallStats.completedChapters} of ${overallStats.totalChapters} chapters ready for exam",
-                                    fontSize = 13.sp,
-                                    color = BrandCreamDark
-                                )
-                            }
-
-                            // Circular Dual Progress Ring
-                            ProgressRing(
-                                progress = overallStats.completionPercentage / 100f,
-                                size = 88.dp,
-                                strokeWidth = 8.dp,
-                                primaryColor = BrandWarmCream,
-                                secondaryColor = BrandTerracotta,
-                                backgroundColor = Color.White.copy(alpha = 0.18f)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "${overallStats.completionPercentage}%",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = BrandWarmCream
-                                    )
-                                    Text(
-                                        text = "READY",
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = BrandCreamLight
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Bento Micro-Metrics Bar inside Hero
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.Black.copy(alpha = 0.28f))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Active", fontSize = 10.sp, color = BrandCreamDark)
-                                Text("${overallStats.inProgressChapters}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = StatusInProgress)
-                            }
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color.White.copy(alpha = 0.15f))
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Revision Due", fontSize = 10.sp, color = BrandCreamDark)
-                                Text("${overallStats.revisionDueChapters}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = StatusRevisionDue)
-                            }
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color.White.copy(alpha = 0.15f))
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Weak Chapters", fontSize = 10.sp, color = BrandCreamDark)
-                                Text("${overallStats.weakChapters}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = StatusWeak)
-                            }
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color.White.copy(alpha = 0.15f))
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Today's Study", fontSize = 10.sp, color = BrandCreamDark)
-                                Text("${overallStats.todayStudyMinutes} mins", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = BrandWarmCream)
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = tab.label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // 2. BENTO ACTION TILES GRID (2x2 Modular Grid)
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        BentoActionTile(
-                            title = "Spaced Revision",
-                            subtitle = "${overallStats.revisionDueChapters} chapters due",
-                            badgeText = if (overallStats.revisionDueChapters > 0) "DUE NOW" else null,
-                            icon = Icons.Default.Update,
-                            iconColor = StatusRevisionDue,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("bento_revision_tile"),
-                            onClick = { onNavigate(NavDestination.REVISION) }
-                        )
-
-                        BentoActionTile(
-                            title = "Daily Planner",
-                            subtitle = "${todayPlans.count { it.isCompleted }}/${todayPlans.size} tasks done",
-                            badgeText = "${todayPlans.size} TODAY",
-                            icon = Icons.Default.CalendarMonth,
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("bento_planner_tile"),
-                            onClick = { onNavigate(NavDestination.PLANNER) }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        BentoActionTile(
-                            title = "Pomodoro Timer",
-                            subtitle = "Focus & log sessions",
-                            badgeText = "25m / 50m",
-                            icon = Icons.Default.Timer,
-                            iconColor = BrandTerracotta,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("bento_timer_tile"),
-                            onClick = { onNavigate(NavDestination.TIMER) }
-                        )
-
-                        BentoActionTile(
-                            title = "Exam Readiness",
-                            subtitle = "${overallStats.masteredChapters} mastered",
-                            badgeText = "ANALYTICS",
-                            icon = Icons.Default.Analytics,
-                            iconColor = SubjectEnglish,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("bento_analytics_tile"),
-                            onClick = { onNavigate(NavDestination.ANALYTICS) }
-                        )
-                    }
-
-                    // Mock Test & Percentile Hub Tile
-                    BentoCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigate(NavDestination.MOCK_TESTS) }
-                            .testTag("dashboard_mock_test_hub_card"),
-                        shape = RoundedCornerShape(20.dp),
-                        accentColor = BrandForestGreen
-                    ) {
-                        Row(
+            // === TAB SPECIFIC CONTENT ===
+            when (activeTab) {
+                HomeDashboardTab.OVERVIEW -> {
+                    // 1. HERO BENTO CARD: Master Progress & Velocity
+                    item {
+                        GradientCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .testTag("dashboard_hero_bento"),
+                            shape = RoundedCornerShape(22.dp),
+                            colors = listOf(BrandForestGreen, Color(0xFF0B4A26))
                         ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(BrandForestGreen.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Quiz,
-                                        contentDescription = null,
-                                        tint = BrandForestGreen,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "Mock Test & Percentiles",
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(BrandTerracotta.copy(alpha = 0.15f))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = "${mockTests.size} MOCKS",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = BrandTerracotta
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    val latest = mockTests.firstOrNull()
-                                    val subText = if (latest != null) {
-                                        "Latest: ${latest.marksScored}/${latest.totalMarks.toInt()} • ${String.format("%.1f", latest.percentile)}%ile"
-                                    } else {
-                                        "Track Testbook, Oliveboard scores & rank"
-                                    }
-
-                                    Text(
-                                        text = subText,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(BrandForestGreen.copy(alpha = 0.12f))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = "Track →",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BrandForestGreen
-                                )
-                            }
-                        }
-                    }
-
-                    // Digital Error Diary Tile
-                    BentoCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigate(NavDestination.MISTAKES) }
-                            .testTag("dashboard_mistake_notebook_card"),
-                        shape = RoundedCornerShape(20.dp),
-                        accentColor = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (mistakeStats.reviewDueCount > 0) StatusWeak.copy(alpha = 0.15f)
-                                            else StatusInProgress.copy(alpha = 0.15f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.BookmarkRemove,
-                                        contentDescription = null,
-                                        tint = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "Digital Error Diary",
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (mistakeStats.reviewDueCount > 0) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(BrandTerracotta)
+                                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "MASTER SYLLABUS",
+                                                    fontSize = 8.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
-                                                    .background(StatusWeak.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    .background(Color.White.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 7.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
-                                                    text = "${mistakeStats.reviewDueCount} DUE",
-                                                    fontSize = 9.sp,
+                                                    text = "🔥 ${overallStats.currentStreakDays}d Streak",
+                                                    fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = StatusWeak
+                                                    color = BrandWarmCream
                                                 )
                                             }
                                         }
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Syllabus Mastery",
+                                            fontSize = 21.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = BrandWarmCream
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "${overallStats.completedChapters} of ${overallStats.totalChapters} chapters prepared",
+                                            fontSize = 12.sp,
+                                            color = BrandCreamDark
+                                        )
                                     }
 
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    val subText = if (mistakeStats.totalMistakesCount == 0) {
-                                        "Log pyq & mock mistakes"
-                                    } else if (mistakeStats.reviewDueCount > 0) {
-                                        "Drill ${mistakeStats.reviewDueCount} weak concepts today"
-                                    } else {
-                                        "${mistakeStats.totalMistakesCount} errors logged • ${mistakeStats.resolutionRatePercent}% resolved"
+                                    // Circular Dual Progress Ring
+                                    ProgressRing(
+                                        progress = overallStats.completionPercentage / 100f,
+                                        size = 80.dp,
+                                        strokeWidth = 7.dp,
+                                        primaryColor = BrandWarmCream,
+                                        secondaryColor = BrandTerracotta,
+                                        backgroundColor = Color.White.copy(alpha = 0.18f)
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "${overallStats.completionPercentage}%",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = BrandWarmCream
+                                            )
+                                            Text(
+                                                text = "READY",
+                                                fontSize = 7.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = BrandCreamLight
+                                            )
+                                        }
                                     }
-
-                                    Text(
-                                        text = subText,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
                                 }
-                            }
 
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (mistakeStats.reviewDueCount > 0) StatusWeak.copy(alpha = 0.12f)
-                                        else StatusInProgress.copy(alpha = 0.12f)
-                                    )
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = "Drill →",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress
-                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                // Bento Micro-Metrics Bar inside Hero
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.Black.copy(alpha = 0.22f))
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Active", fontSize = 9.5.sp, color = BrandCreamDark)
+                                        Text("${overallStats.inProgressChapters}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusInProgress)
+                                    }
+                                    VerticalDivider(modifier = Modifier.height(18.dp), color = Color.White.copy(alpha = 0.15f))
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Revision Due", fontSize = 9.5.sp, color = BrandCreamDark)
+                                        Text("${overallStats.revisionDueChapters}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusRevisionDue)
+                                    }
+                                    VerticalDivider(modifier = Modifier.height(18.dp), color = Color.White.copy(alpha = 0.15f))
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Weak Topics", fontSize = 9.5.sp, color = BrandCreamDark)
+                                        Text("${overallStats.weakChapters}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusWeak)
+                                    }
+                                    VerticalDivider(modifier = Modifier.height(18.dp), color = Color.White.copy(alpha = 0.15f))
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Today's Study", fontSize = 9.5.sp, color = BrandCreamDark)
+                                        Text("${overallStats.todayStudyMinutes}m", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BrandWarmCream)
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // Quick Ambient Focus Audio / White Noise Bar
-                    BentoCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigate(NavDestination.TIMER) }
-                            .testTag("dashboard_ambient_audio_quick_tile"),
-                        shape = RoundedCornerShape(20.dp),
-                        accentColor = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) Color(0xFFAB47BC) else BrandTerracotta
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                    // 2. QUICK ACTION TILES GRID (2x2 Modular Grid)
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Box(
+                                BentoActionTile(
+                                    title = "Spaced Revision",
+                                    subtitle = "${overallStats.revisionDueChapters} chapters due",
+                                    badgeText = if (overallStats.revisionDueChapters > 0) "DUE NOW" else null,
+                                    icon = Icons.Default.Update,
+                                    iconColor = StatusRevisionDue,
                                     modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
-                                                Color(0xFFAB47BC).copy(alpha = 0.15f)
-                                            else BrandTerracotta.copy(alpha = 0.15f)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                        .weight(1f)
+                                        .testTag("bento_revision_tile"),
+                                    onClick = { onNavigate(NavDestination.REVISION) }
+                                )
+
+                                BentoActionTile(
+                                    title = "Daily Planner",
+                                    subtitle = "${todayPlans.count { it.isCompleted }}/${todayPlans.size} tasks done",
+                                    badgeText = "${todayPlans.size} TODAY",
+                                    icon = Icons.Default.CalendarMonth,
+                                    iconColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("bento_planner_tile"),
+                                    onClick = { onNavigate(NavDestination.PLANNER) }
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                BentoActionTile(
+                                    title = "Pomodoro Focus",
+                                    subtitle = "Log & timer study",
+                                    badgeText = "25m / 50m",
+                                    icon = Icons.Default.Timer,
+                                    iconColor = BrandTerracotta,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("bento_timer_tile"),
+                                    onClick = { onNavigate(NavDestination.TIMER) }
+                                )
+
+                                BentoActionTile(
+                                    title = "Exam Readiness",
+                                    subtitle = "${overallStats.masteredChapters} mastered",
+                                    badgeText = "ANALYTICS",
+                                    icon = Icons.Default.Analytics,
+                                    iconColor = SubjectEnglish,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("bento_analytics_tile"),
+                                    onClick = { onNavigate(NavDestination.ANALYTICS) }
+                                )
+                            }
+
+                            // Mock Test & Percentile Hub Tile
+                            BentoCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigate(NavDestination.MOCK_TESTS) }
+                                    .testTag("dashboard_mock_test_hub_card"),
+                                shape = RoundedCornerShape(16.dp),
+                                accentColor = BrandForestGreen
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        text = if (ambientSound != AmbientSoundType.NONE) ambientSound.emoji else "🎧",
-                                        fontSize = 22.sp
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "Ambient White Noise",
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(
-                                                    if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
-                                                        Color(0xFFAB47BC).copy(alpha = 0.15f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant
-                                                )
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                .size(40.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(BrandForestGreen.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
                                         ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Quiz,
+                                                contentDescription = null,
+                                                tint = BrandForestGreen,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "Mock Tests & Percentiles",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(BrandTerracotta.copy(alpha = 0.15f))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${mockTests.size} MOCKS",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = BrandTerracotta
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(2.dp))
+
+                                            val latest = mockTests.firstOrNull()
+                                            val subText = if (latest != null) {
+                                                "Latest: ${latest.marksScored.toInt()}/${latest.totalMarks.toInt()} • ${String.format("%.1f", latest.percentile)}%ile"
+                                            } else {
+                                                "Track Testbook, Oliveboard scores & rank"
+                                            }
+
                                             Text(
-                                                text = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) "PLAYING 🎵" else "OFFLINE",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) Color(0xFFAB47BC) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                text = subText,
+                                                fontSize = 11.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    Text(
-                                        text = if (ambientSound != AmbientSoundType.NONE) "${ambientSound.title} • Tap to tune" else "Rain, Deep Brown Noise, Binaural Beats & Waves",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            FilledIconButton(
-                                onClick = {
-                                    if (ambientSound == AmbientSoundType.NONE) {
-                                        timerViewModel.selectAmbientSound(AmbientSoundType.BROWN_NOISE)
-                                    } else {
-                                        timerViewModel.toggleAmbientPlayPause()
-                                    }
-                                },
-                                shape = CircleShape,
-                                modifier = Modifier.size(38.dp),
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
-                                        Color(0xFFAB47BC)
-                                    else MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
-                                        Icons.Default.VolumeUp
-                                    else Icons.Default.VolumeOff,
-                                    contentDescription = "Toggle Ambient Sound",
-                                    tint = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
-                                        Color.White
-                                    else MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. SMART FOCUS & ATTENTION BENTO
-            if (revDueChapters.isNotEmpty() || weakChapters.isNotEmpty()) {
-                item {
-                    BentoCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        accentColor = BrandTerracotta
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Adjust,
-                                        contentDescription = null,
-                                        tint = BrandTerracotta,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "🎯 High-Priority Focus",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                                Text(
-                                    text = "Action Required",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BrandTerracotta
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            if (revDueChapters.isNotEmpty()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(StatusRevisionDue.copy(alpha = 0.12f))
-                                        .clickable { onNavigate(NavDestination.REVISION) }
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Update, contentDescription = null, tint = StatusRevisionDue, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${revDueChapters.size} chapters need spaced repetition",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "Top: ${revDueChapters.first().title}",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(StatusRevisionDue)
-                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            .background(BrandForestGreen.copy(alpha = 0.12f))
+                                            .padding(horizontal = 9.dp, vertical = 5.dp)
                                     ) {
                                         Text(
-                                            text = "Revise →",
+                                            text = "Track →",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = BrandForestGreen
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
                             }
 
-                            if (weakChapters.isNotEmpty()) {
+                            // Digital Error Diary Tile
+                            BentoCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigate(NavDestination.MISTAKES) }
+                                    .testTag("dashboard_mistake_notebook_card"),
+                                shape = RoundedCornerShape(16.dp),
+                                accentColor = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(StatusWeak.copy(alpha = 0.12f))
-                                        .clickable { onNavigate(NavDestination.WEAK_TOPICS) }
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Icon(Icons.Default.ReportProblem, contentDescription = null, tint = StatusWeak, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${weakChapters.size} weak chapters need reinforcement",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "Drill confidence & practice PYQs",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    if (mistakeStats.reviewDueCount > 0) StatusWeak.copy(alpha = 0.15f)
+                                                    else StatusInProgress.copy(alpha = 0.15f)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.BookmarkRemove,
+                                                contentDescription = null,
+                                                tint = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "Digital Error Diary",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                if (mistakeStats.reviewDueCount > 0) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(StatusWeak.copy(alpha = 0.15f))
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "${mistakeStats.reviewDueCount} DUE",
+                                                            fontSize = 9.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = StatusWeak
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(2.dp))
+
+                                            val subText = if (mistakeStats.totalMistakesCount == 0) {
+                                                "Log PYQ & mock exam mistakes"
+                                            } else if (mistakeStats.reviewDueCount > 0) {
+                                                "Drill ${mistakeStats.reviewDueCount} weak concepts today"
+                                            } else {
+                                                "${mistakeStats.totalMistakesCount} errors logged • ${mistakeStats.resolutionRatePercent}% resolved"
+                                            }
+
+                                            Text(
+                                                text = subText,
+                                                fontSize = 11.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
+
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(StatusWeak)
-                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            .background(
+                                                if (mistakeStats.reviewDueCount > 0) StatusWeak.copy(alpha = 0.12f)
+                                                else StatusInProgress.copy(alpha = 0.12f)
+                                            )
+                                            .padding(horizontal = 9.dp, vertical = 5.dp)
                                     ) {
                                         Text(
                                             text = "Drill →",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = if (mistakeStats.reviewDueCount > 0) StatusWeak else StatusInProgress
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. HIGH PRIORITY FOCUS ALERT (If Due or Weak Chapters exist)
+                    if (revDueChapters.isNotEmpty() || weakChapters.isNotEmpty()) {
+                        item {
+                            BentoCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                accentColor = BrandTerracotta
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Adjust,
+                                                contentDescription = null,
+                                                tint = BrandTerracotta,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "🎯 Priority Revision & Weak Areas",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    if (revDueChapters.isNotEmpty()) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(StatusRevisionDue.copy(alpha = 0.12f))
+                                                .clickable { onNavigate(NavDestination.REVISION) }
+                                                .padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Update, contentDescription = null, tint = StatusRevisionDue, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${revDueChapters.size} chapters need spaced repetition",
+                                                    fontSize = 12.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "Top: ${revDueChapters.first().title}",
+                                                    fontSize = 10.5.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(StatusRevisionDue)
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Revise",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                    }
+
+                                    if (weakChapters.isNotEmpty()) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(StatusWeak.copy(alpha = 0.12f))
+                                                .clickable { onNavigate(NavDestination.WEAK_TOPICS) }
+                                                .padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.ReportProblem, contentDescription = null, tint = StatusWeak, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${weakChapters.size} weak chapters need reinforcement",
+                                                    fontSize = 12.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "Drill confidence & practice PYQs",
+                                                    fontSize = 10.5.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(StatusWeak)
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Drill",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. CORE SUBJECTS HIGHLIGHT (Top 3 active subjects)
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📚 Core Subject Modules",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            TextButton(onClick = { activeTab = HomeDashboardTab.SUBJECTS }) {
+                                Text("View All (${subjectStats.size}) →", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    items(subjectStats.take(3)) { stats ->
+                        val color = try {
+                            Color(android.graphics.Color.parseColor(stats.subject.colorHex))
+                        } catch (e: Exception) {
+                            BrandForestGreen
+                        }
+
+                        BentoCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenSubject(stats.subject.id) },
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = 2.dp,
+                            accentColor = color
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(color.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = stats.subject.code.ifEmpty { stats.subject.name.take(2).uppercase() },
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = color
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = stats.subject.name,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${stats.totalChapters} Chapters • ${stats.completedChapters} Done",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(color.copy(alpha = 0.12f))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "${stats.completionPercentage}%",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = color
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                LinearSyllabusBar(
+                                    progress = stats.completionPercentage / 100f,
+                                    height = 6.dp,
+                                    barColor = color
+                                )
+                            }
+                        }
+                    }
+
+                    // 5. AMBIENT FOCUS AUDIO PLAYER
+                    item {
+                        BentoCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigate(NavDestination.TIMER) }
+                                .testTag("dashboard_ambient_audio_quick_tile"),
+                            shape = RoundedCornerShape(16.dp),
+                            accentColor = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) Color(0xFFAB47BC) else BrandTerracotta
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
+                                                    Color(0xFFAB47BC).copy(alpha = 0.15f)
+                                                else BrandTerracotta.copy(alpha = 0.15f)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (ambientSound != AmbientSoundType.NONE) ambientSound.emoji else "🎧",
+                                            fontSize = 20.sp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "Focus White Noise",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
+                                                            Color(0xFFAB47BC).copy(alpha = 0.15f)
+                                                        else MaterialTheme.colorScheme.surfaceVariant
+                                                    )
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) "PLAYING" else "OFFLINE",
+                                                    fontSize = 8.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE) Color(0xFFAB47BC) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        Text(
+                                            text = if (ambientSound != AmbientSoundType.NONE) "${ambientSound.title} • Tap to tune" else "Rain, Brown Noise, Binaural Beats",
+                                            fontSize = 11.5.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                FilledIconButton(
+                                    onClick = {
+                                        if (ambientSound == AmbientSoundType.NONE) {
+                                            timerViewModel.selectAmbientSound(AmbientSoundType.BROWN_NOISE)
+                                        } else {
+                                            timerViewModel.toggleAmbientPlayPause()
+                                        }
+                                    },
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(36.dp),
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
+                                            Color(0xFFAB47BC)
+                                        else MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
+                                            Icons.Default.VolumeUp
+                                        else Icons.Default.VolumeOff,
+                                        contentDescription = "Toggle Ambient Sound",
+                                        tint = if (isAmbientPlaying && ambientSound != AmbientSoundType.NONE)
+                                            Color.White
+                                        else MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. GAMIFIED HABIT & BADGES CARD
+                    item {
+                        GamifiedAspirantCard(
+                            streakDays = overallStats.currentStreakDays,
+                            totalStudyMins = overallStats.totalStudyMinutes,
+                            completedChapters = overallStats.completedChapters,
+                            totalChapters = overallStats.totalChapters,
+                            mockCount = mockTests.size,
+                            resolvedMistakesCount = mistakeStats.understoodCount + mistakeStats.masteredCount
+                        )
+                    }
+                }
+
+                HomeDashboardTab.TODAYS_PLAN -> {
+                    // 1. TODAY'S ADAPTIVE PLAN ENGINE CARD
+                    item {
+                        TodaysAdaptivePlanCard(
+                            plan = intelligenceSnapshot.todaysPlan,
+                            selectedBudgetMinutes = dailyBudget,
+                            onBudgetChanged = { intelligenceViewModel.setDailyBudgetMinutes(it) },
+                            onActionCompleted = { intelligenceViewModel.markPlanActionCompleted(it) },
+                            onActionClick = { item ->
+                                val ch = items.find { it.id == item.topicId }
+                                if (ch != null) syllabusViewModel.selectChapter(ch)
+                            }
+                        )
+                    }
+
+                    // 2. STUDY SCHEDULE ITEMS
+                    if (todayPlans.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "📅 Scheduled Tasks (${todayPlans.size})",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                TextButton(onClick = { onNavigate(NavDestination.PLANNER) }) {
+                                    Text("Open Planner →", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        items(todayPlans) { plan ->
+                            BentoCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { plannerViewModel.togglePlanCompleted(plan) },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = plan.isCompleted,
+                                        onCheckedChange = { plannerViewModel.togglePlanCompleted(plan) },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = plan.chapterTitle,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (plan.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "${plan.timeStr} • ${plan.subjectName} • ${plan.plannedMinutes} mins",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (plan.isCompleted) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Completed",
+                                            tint = StatusCompleted,
+                                            modifier = Modifier.size(22.dp)
                                         )
                                     }
                                 }
@@ -1270,209 +1485,180 @@ fun DashboardScreen(
                         }
                     }
                 }
-            }
 
-            // 4. CORE SUBJECTS BENTO SECTION
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "📚 Core Subject Modules",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    TextButton(onClick = { onNavigate(NavDestination.SUBJECTS) }) {
-                        Text("View All (${subjectStats.size}) →", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Subject Bento Cards (Modular items)
-            items(subjectStats) { stats ->
-                val color = try {
-                    Color(android.graphics.Color.parseColor(stats.subject.colorHex))
-                } catch (e: Exception) {
-                    BrandForestGreen
-                }
-
-                BentoCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOpenSubject(stats.subject.id) },
-                    shape = RoundedCornerShape(18.dp),
-                    elevation = 2.dp,
-                    accentColor = color
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                HomeDashboardTab.SUBJECTS -> {
+                    item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(color.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = stats.subject.code.ifEmpty { stats.subject.name.take(2).uppercase() },
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = color
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = stats.subject.name,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "${stats.totalSections} Sections • ${stats.totalChapters} Chapters",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            // Percentage badge pill
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(color.copy(alpha = 0.12f))
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
-                            ) {
-                                Text(
-                                    text = "${stats.completionPercentage}%",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = color
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        LinearSyllabusBar(
-                            progress = stats.completionPercentage / 100f,
-                            height = 7.dp,
-                            barColor = color
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text(
-                                    text = "✅ ${stats.completedChapters} Done",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "⏳ ${stats.inProgressChapters} Active",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (stats.weakChapters > 0) {
-                                    Text(
-                                        text = "🔴 ${stats.weakChapters} Weak",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = StatusWeak
-                                    )
-                                }
-                            }
-
-                            if (stats.pyqAttempted > 0) {
-                                Text(
-                                    text = "PYQ: ${stats.pyqAccuracy}%",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (stats.pyqAccuracy >= 70) StatusCompleted else StatusWeak
-                                )
+                            Text(
+                                text = "📚 All Subjects (${subjectStats.size})",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            TextButton(onClick = { onNavigate(NavDestination.SUBJECTS) }) {
+                                Text("Manage →", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
-                }
-            }
 
-            // 5. TODAY'S STUDY SCHEDULE BENTO
-            if (todayPlans.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "📅 Today's Study Schedule",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        TextButton(onClick = { onNavigate(NavDestination.PLANNER) }) {
-                            Text("Open Planner →", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    items(subjectStats) { stats ->
+                        val color = try {
+                            Color(android.graphics.Color.parseColor(stats.subject.colorHex))
+                        } catch (e: Exception) {
+                            BrandForestGreen
                         }
-                    }
-                }
 
-                items(todayPlans) { plan ->
-                    BentoCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { plannerViewModel.togglePlanCompleted(plan) },
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Row(
+                        BentoCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable { onOpenSubject(stats.subject.id) },
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = 2.dp,
+                            accentColor = color
                         ) {
-                            Checkbox(
-                                checked = plan.isCompleted,
-                                onCheckedChange = { plannerViewModel.togglePlanCompleted(plan) },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = MaterialTheme.colorScheme.primary
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(color.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = stats.subject.code.ifEmpty { stats.subject.name.take(2).uppercase() },
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = color
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = stats.subject.name,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${stats.totalSections} Sections • ${stats.totalChapters} Chapters",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(color.copy(alpha = 0.12f))
+                                            .padding(horizontal = 9.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "${stats.completionPercentage}%",
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = color
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                LinearSyllabusBar(
+                                    progress = stats.completionPercentage / 100f,
+                                    height = 7.dp,
+                                    barColor = color
                                 )
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = plan.chapterTitle,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (plan.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${plan.timeStr} • ${plan.subjectName} • ${plan.plannedMinutes} mins",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (plan.isCompleted) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Completed",
-                                    tint = StatusCompleted,
-                                    modifier = Modifier.size(22.dp)
-                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(
+                                            text = "✅ ${stats.completedChapters} Done",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "⏳ ${stats.inProgressChapters} Active",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (stats.weakChapters > 0) {
+                                            Text(
+                                                text = "🔴 ${stats.weakChapters} Weak",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = StatusWeak
+                                            )
+                                        }
+                                    }
+
+                                    if (stats.pyqAttempted > 0) {
+                                        Text(
+                                            text = "PYQ: ${stats.pyqAccuracy}%",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (stats.pyqAccuracy >= 70) StatusCompleted else StatusWeak
+                                        )
+                                    }
+                                }
                             }
                         }
+                    }
+                }
+
+                HomeDashboardTab.INTELLIGENCE -> {
+                    // 1. ADAPTIVE EXAM PACE & RECOVERY CARD
+                    item {
+                        AdaptiveExamPaceCard(
+                            pace = intelligenceSnapshot.pace,
+                            targetExamName = appSettings.targetExam,
+                            onEditExamDate = { showEditExamDialog = true }
+                        )
+                    }
+
+                    // 2. EXAM READINESS ENGINE CARD
+                    item {
+                        ExamReadinessCard(
+                            readiness = intelligenceSnapshot.readiness,
+                            lastDaysMode = intelligenceSnapshot.lastDaysMode
+                        )
+                    }
+
+                    // 3. PERFORMANCE TREND & FEEDBACK CARD
+                    item {
+                        PerformanceTrendDashboardCard(
+                            trendResult = intelligenceSnapshot.performanceTrends,
+                            weeklyReport = intelligenceSnapshot.weeklyReport,
+                            recurringMistakes = intelligenceSnapshot.recurringMistakes,
+                            onOpenWeeklyReport = { showWeeklyReportDialog = true }
+                        )
+                    }
+
+                    // 4. DAILY MINDSET & COGNITIVE STUDY HACKS
+                    item {
+                        com.example.ui.components.DailyMindsetCard(
+                            userName = appSettings.userName,
+                            currentAmbient = ambientSound,
+                            isAmbientPlaying = isAmbientPlaying,
+                            onSelectAmbient = { type -> timerViewModel.selectAmbientSound(type) },
+                            onToggleAmbient = { timerViewModel.toggleAmbientPlayPause() }
+                        )
                     }
                 }
             }
@@ -1617,11 +1803,11 @@ fun GamifiedAspirantCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             // Header Row: Level and Title
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1631,49 +1817,48 @@ fun GamifiedAspirantCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(34.dp)
                             .clip(CircleShape)
                             .background(BrandTerracotta.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(levelIcon, fontSize = 20.sp)
+                        Text(levelIcon, fontSize = 18.sp)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = "Level $unlockedCount: $levelTitle",
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = BrandTerracotta
                         )
                         Text(
                             text = levelDesc,
-                            fontSize = 10.sp,
+                            fontSize = 9.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 13.sp
+                            lineHeight = 12.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Animated Streak Flame & Progress Indicators
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                    .padding(12.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Flame block
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.radialGradient(
@@ -1685,15 +1870,15 @@ fun GamifiedAspirantCard(
                     ) {
                         Text(
                             text = if (streakDays >= 8) "🔥" else if (streakDays >= 4) "⚡" else "🔥",
-                            fontSize = 24.sp
+                            fontSize = 20.sp
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "$streakDays Day Streak",
-                                fontSize = 15.sp,
+                                fontSize = 13.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1702,7 +1887,7 @@ fun GamifiedAspirantCard(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(BrandForestGreen.copy(alpha = 0.12f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = if (streakDays >= 8) "GOLDEN GLOW" else if (streakDays >= 4) "SILVER RUSH" else "BRONZE HABIT",
@@ -1714,29 +1899,28 @@ fun GamifiedAspirantCard(
                         }
                         Text(
                             text = "Longest: ${streakDays + 5} days streak record",
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Badges Showcase Grid
             Text(
                 text = "🏆 Unlocked Badges (${unlockedCount}/4)",
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 6.dp)
+                modifier = Modifier.padding(bottom = 5.dp)
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Badge 1: Mock King
                 BadgeItem(
                     title = "Mock King",
                     hindi = "मॉक किंग",
@@ -1746,7 +1930,6 @@ fun GamifiedAspirantCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Badge 2: Error Eliminator
                 BadgeItem(
                     title = "Error Slayer",
                     hindi = "गलती सुधारक",
@@ -1756,7 +1939,6 @@ fun GamifiedAspirantCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Badge 3: Study Monk
                 BadgeItem(
                     title = "Study Monk",
                     hindi = "तपस्वी",
@@ -1766,7 +1948,6 @@ fun GamifiedAspirantCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Badge 4: Syllabus Conqueror
                 val currentPct = if (totalChapters > 0) ((completedChapters.toFloat() / totalChapters) * 100).toInt() else 0
                 BadgeItem(
                     title = "Conqueror",
@@ -1791,7 +1972,7 @@ fun BadgeItem(
     modifier: Modifier = Modifier
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isUnlocked) BrandForestGreen.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
         ),
@@ -1805,12 +1986,12 @@ fun BadgeItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 4.dp)
+                .padding(vertical = 6.dp, horizontal = 3.dp)
         ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
                     .background(
                         if (isUnlocked) BrandForestGreen.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.1f)
@@ -1818,14 +1999,14 @@ fun BadgeItem(
             ) {
                 Text(
                     text = emoji,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     color = if (isUnlocked) Color.Unspecified else Color.Gray
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = title,
-                fontSize = 10.sp,
+                fontSize = 9.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isUnlocked) BrandForestGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -1833,7 +2014,7 @@ fun BadgeItem(
             )
             Text(
                 text = hindi,
-                fontSize = 8.sp,
+                fontSize = 7.5.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1841,7 +2022,7 @@ fun BadgeItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = progress,
-                fontSize = 8.sp,
+                fontSize = 7.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isUnlocked) BrandForestGreen else Color.Gray
             )

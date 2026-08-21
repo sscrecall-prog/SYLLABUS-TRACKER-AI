@@ -41,6 +41,9 @@ interface MistakeDao {
     @Query("DELETE FROM mistake_entries WHERE id = :id")
     suspend fun deleteMistakeById(id: Long)
 
+    @Query("DELETE FROM mistake_entries")
+    suspend fun deleteAllMistakes()
+
     @Query("SELECT COUNT(*) FROM mistake_entries")
     fun getMistakesCount(): Flow<Int>
 }

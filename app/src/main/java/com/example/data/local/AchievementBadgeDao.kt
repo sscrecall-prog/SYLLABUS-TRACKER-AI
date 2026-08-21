@@ -26,4 +26,7 @@ interface AchievementBadgeDao {
 
     @Query("SELECT COUNT(*) FROM achievement_badges WHERE isUnlocked = 1")
     fun getUnlockedCount(): Flow<Int>
+
+    @Query("DELETE FROM achievement_badges")
+    suspend fun deleteAllBadges()
 }

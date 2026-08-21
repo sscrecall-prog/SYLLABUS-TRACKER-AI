@@ -15,6 +15,9 @@ interface StudySessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: StudySession): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSessions(sessions: List<StudySession>)
+
     @Delete
     suspend fun deleteSession(session: StudySession)
 

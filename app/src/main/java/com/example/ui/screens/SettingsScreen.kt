@@ -567,6 +567,50 @@ fun SettingsScreen() {
                 }
             }
         }
+
+        // App Branding & Version Card
+        item {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .motionCardEntry(6),
+                shape = RoundedCornerShape(16.dp),
+                accentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_app_logo),
+                        contentDescription = "Syllabus Tracker App Logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Syllabus Tracker",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Adaptive Preparation & Intelligent Revision Engine",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Version 1.0.0 (Production Release)",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 
     // Export Dialog

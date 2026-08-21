@@ -22,7 +22,7 @@ class AppContainer private constructor(context: Context) {
         SettingsRepository(
             database.settingsDao(), database.achievementBadgeDao(), database.subjectDao(),
             database.syllabusDao(), database.studySessionDao(), database.studyPlanDao(),
-            database.goalDao(), database.mockTestDao()
+            database.goalDao(), database.mockTestDao(), database.mistakeDao()
         )
     }
     val analyticsRepository: AnalyticsRepository by lazy { AnalyticsRepository() }

@@ -1,0 +1,442 @@
+0: package com.example.data.repository
+1: 
+2: import com.example.data.local.*
+3: import com.example.data.model.*
+4: import kotlinx.coroutines.Dispatchers
+5: import kotlinx.coroutines.flow.Flow
+6: import kotlinx.coroutines.flow.first
+7: import kotlinx.coroutines.flow.firstOrNull
+8: import kotlinx.coroutines.withContext
+9: import org.json.JSONArray
+10: import org.json.JSONObject
+11: 
+12: import kotlinx.coroutines.flow.map
+13: 
+14: class SyllabusRepository(
+15:     private val subjectDao: SubjectDao,
+16:     private val syllabusDao: SyllabusDao,
+17:     private val studySessionDao: StudySessionDao,
+18:     private val studyPlanDao: StudyPlanDao,
+19:     private val goalDao: GoalDao,
+20:     private val settingsDao: SettingsDao,
+21:     private val achievementBadgeDao: AchievementBadgeDao,
+22:     private val mockTestDao: MockTestDao,
+23:     private val mistakeDao: MistakeDao
+24: ) {
+25:     // Flows
+26:     val allSubjects: Flow<List<Subject>> = subjectDao.getAllSubjects()
+27:     val allItems: Flow<List<SyllabusItem>> = syllabusDao.getAllItems()
+28:     val allStudySessions: Flow<List<StudySession>> = studySessionDao.getAllSessions()
+29:     val allGoals: Flow<List<Goal>> = goalDao.getAllGoals()
+30:     val appSettings: Flow<AppSettings> = settingsDao.getSettings().map { it ?: AppSettings() }
+31:     val allBadges: Flow<List<AchievementBadge>> = achievementBadgeDao.getAllBadges()
+32:     val unlockedBadges: Flow<List<AchievementBadge>> = achievementBadgeDao.getUnlockedBadges()
+33:     val allMockTests: Flow<List<MockTest>> = mockTestDao.getAllMockTests()
+34:     val allMistakes: Flow<List<MistakeEntry>> = mistakeDao.getAllMistakes()
+35:     val allSubjectHierarchies: Flow<List<SubjectHierarchy>> = syllabusDao.getAllSubjectHierarchies()
+36: 
+37:     suspend fun updateBadge(badge: AchievementBadge) = withContext(Dispatchers.IO) {
+38:         achievementBadgeDao.updateBadge(badge)
+39:     }
+40: 
+41:     suspend fun insertBadges(badges: List<AchievementBadge>) = withContext(Dispatchers.IO) {
+42:         achievementBadgeDao.insertBadges(badges)
+43:     }
+44: 
+45:     fun getItemsForSubject(subjectId: Long): Flow<List<SyllabusItem>> =
+46:         syllabusDao.getItemsForSubject(subjectId)
+47: 
+48:     fun getPlansForDate(dateStr: String): Flow<List<StudyPlan>> =
+49:         studyPlanDao.getPlansForDate(dateStr)
+50: 
+51:     val allPlans: Flow<List<StudyPlan>> = studyPlanDao.getAllPlans()
+52: 
+53:     fun searchItems(query: String): Flow<List<SyllabusItem>> =
+54:         syllabusDao.searchItems(query)
+55: 
+56:     // Subject CRUD
+57:     suspend fun insertSubject(subject: Subject): Long = withContext(Dispatchers.IO) {
+58:         subjectDao.insertSubject(subject)
+59:     }
+60: 
+61:     suspend fun updateSubject(subject: Subject) = withContext(Dispatchers.IO) {
+62:         subjectDao.updateSubject(subject)
+63:     }
+64: 
+65:     suspend fun deleteSubject(subject: Subject) = withContext(Dispatchers.IO) {
+66:         syllabusDao.deleteItemsForSubject(subject.id)
+67:         subjectDao.deleteSubject(subject)
+68:     }
+69: 
+70:     suspend fun reorderSubjects(orderedList: List<Subject>) = withContext(Dispatchers.IO) {
+71:         orderedList.forEachIndexed { index, subject ->
+72:             subjectDao.updateSubject(subject.copy(orderIndex = index))
+73:         }
+74:     }
+75: 
+76:     // Syllabus Item CRUD
+77:     suspend fun insertItem(item: SyllabusItem): Long = withContext(Dispatchers.IO) {
+78:         syllabusDao.insertItem(item)
+79:     }
+80: 
+81:     suspend fun insertItems(items: List<SyllabusItem>): List<Long> = withContext(Dispatchers.IO) {
+82:         syllabusDao.insertItems(items)
+83:     }
+84: 
+85:     suspend fun updateItem(item: SyllabusItem) = withContext(Dispatchers.IO) {
+86:         syllabusDao.updateItem(item)
+87:     }
+88: 
+89:     suspend fun deleteItem(item: SyllabusItem) = withContext(Dispatchers.IO) {
+90:         syllabusDao.deleteItemAndChildren(item.id)
+91:     }
+92: 
+93:     suspend fun duplicateItem(item: SyllabusItem) = withContext(Dispatchers.IO) {
+94:         val newItem = item.copy(
+95:             id = 0,
+96:             title = "${item.title} (Copy)",
+97:             orderIndex = item.orderIndex + 1
+98:         )
+99:         val newId = syllabusDao.insertItem(newItem)
+100: 
+101:         // Duplicate direct children if any
+102:         val children = syllabusDao.getItemsByParent(item.id).first()
+103:         for (child in children) {
+104:             val newChild = child.copy(
+105:                 id = 0,
+106:                 parentId = newId
+107:             )
+108:             syllabusDao.insertItem(newChild)
+109:         }
+110:     }
+111: 
+112:     suspend fun moveItem(item: SyllabusItem, newParentId: Long?) = withContext(Dispatchers.IO) {
+113:         syllabusDao.updateItem(item.copy(parentId = newParentId))
+114:     }
+115: 
+116:     suspend fun reorderItems(items: List<SyllabusItem>) = withContext(Dispatchers.IO) {
+117:         val updated = items.mapIndexed { index, item -> item.copy(orderIndex = index) }
+118:         syllabusDao.updateItems(updated)
+119:     }
+120: 
+121:     // Spaced Repetition Logic
+122:     suspend fun markChapterRevised(chapter: SyllabusItem) = withContext(Dispatchers.IO) {
+123:         val settings = settingsDao.getSettingsDirect() ?: AppSettings()
+124:         val intervals = settings.revisionIntervals
+125:         val currentRevCount = chapter.revisionCount + 1
+126:         
+127:         val intervalIndex = (currentRevCount - 1).coerceAtMost(intervals.size - 1)
+128:         val daysToAdd = intervals[intervalIndex]
+129:         val now = System.currentTimeMillis()
+130:         val nextDate = now + (daysToAdd.toLong() * 24 * 60 * 60 * 1000L)
+131: 
+132:         val updated = chapter.copy(
+133:             revisionCount = currentRevCount,
+134:             lastStudiedTimestamp = now,
+135:             nextRevisionTimestamp = nextDate,
+136:             status = if (currentRevCount >= 5) ChapterStatus.MASTERED else ChapterStatus.COMPLETED,
+137:             completionPercentage = 100
+138:         )
+139:         syllabusDao.updateItem(updated)
+140:     }
+141: 
+142:     suspend fun scheduleCustomRevision(chapter: SyllabusItem, targetTimestamp: Long) = withContext(Dispatchers.IO) {
+143:         syllabusDao.updateItem(
+144:             chapter.copy(
+145:                 nextRevisionTimestamp = targetTimestamp,
+146:                 status = if (targetTimestamp <= System.currentTimeMillis()) ChapterStatus.REVISION_DUE else chapter.status
+147:             )
+148:         )
+149:     }
+150: 
+151:     suspend fun updateChapterStatus(chapter: SyllabusItem, newStatus: ChapterStatus) = withContext(Dispatchers.IO) {
+152:         val now = System.currentTimeMillis()
+153:         val settings = settingsDao.getSettingsDirect() ?: AppSettings()
+154:         val intervals = settings.revisionIntervals
+155: 
+156:         val updated = when (newStatus) {
+157:             ChapterStatus.COMPLETED -> {
+158:                 val nextRev = if (chapter.nextRevisionTimestamp == null || chapter.nextRevisionTimestamp <= now) {
+159:                     now + (intervals.firstOrNull() ?: 1) * 24L * 60 * 60 * 1000L
+160:                 } else chapter.nextRevisionTimestamp
+161:                 chapter.copy(
+162:                     status = newStatus,
+163:                     completionPercentage = 100,
+164:                     lastStudiedTimestamp = now,
+165:                     nextRevisionTimestamp = nextRev
+166:                 )
+167:             }
+168:             ChapterStatus.MASTERED -> {
+169:                 chapter.copy(status = newStatus, completionPercentage = 100, confidence = 5)
+170:             }
+171:             ChapterStatus.NOT_STARTED -> {
+172:                 chapter.copy(status = newStatus, completionPercentage = 0)
+173:             }
+174:             ChapterStatus.WEAK -> {
+175:                 chapter.copy(status = newStatus, confidence = chapter.confidence.coerceAtMost(2))
+176:             }
+177:             ChapterStatus.REVISION_DUE -> {
+178:                 chapter.copy(status = newStatus, nextRevisionTimestamp = now)
+179:             }
+180:             else -> {
+181:                 chapter.copy(status = newStatus)
+182:             }
+183:         }
+184:         syllabusDao.updateItem(updated)
+185:     }
+186: 
+187:     // Study Sessions & Timer
+188:     suspend fun logStudySession(
+189:         subjectId: Long,
+190:         subjectName: String,
+191:         chapterId: Long?,
+192:         chapterTitle: String,
+193:         durationSeconds: Long,
+194:         mode: TimerMode,
+195:         notes: String = ""
+196:     ) = withContext(Dispatchers.IO) {
+197:         val session = StudySession(
+198:             subjectId = subjectId,
+199:             subjectName = subjectName,
+200:             chapterId = chapterId,
+201:             chapterTitle = chapterTitle,
+202:             durationSeconds = durationSeconds,
+203:             mode = mode,
+204:             notes = notes
+205:         )
+206:         studySessionDao.insertSession(session)
+207: 
+208:         // If linked to chapter, update study time
+209:         if (chapterId != null) {
+210:             val chapter = syllabusDao.getItemById(chapterId)
+211:             if (chapter != null) {
+212:                 val addedMinutes = (durationSeconds / 60).toInt().coerceAtLeast(1)
+213:                 syllabusDao.updateItem(
+214:                     chapter.copy(
+215:                         studyTimeMinutes = chapter.studyTimeMinutes + addedMinutes,
+216:                         lastStudiedTimestamp = System.currentTimeMillis()
+217:                     )
+218:                 )
+219:             }
+220:         }
+221:     }
+222: 
+223:     // Study Planner CRUD
+224:     suspend fun insertPlan(plan: StudyPlan) = withContext(Dispatchers.IO) {
+225:         studyPlanDao.insertPlan(plan)
+226:     }
+227: 
+228:     suspend fun updatePlan(plan: StudyPlan) = withContext(Dispatchers.IO) {
+229:         studyPlanDao.updatePlan(plan)
+230:     }
+231: 
+232:     suspend fun deletePlan(plan: StudyPlan) = withContext(Dispatchers.IO) {
+233:         studyPlanDao.deletePlan(plan)
+234:     }
+235: 
+236:     // Goals CRUD
+237:     suspend fun insertGoal(goal: Goal) = withContext(Dispatchers.IO) {
+238:         goalDao.insertGoal(goal)
+239:     }
+240: 
+241:     suspend fun updateGoal(goal: Goal) = withContext(Dispatchers.IO) {
+242:         goalDao.updateGoal(goal)
+243:     }
+244: 
+245:     suspend fun deleteGoal(goal: Goal) = withContext(Dispatchers.IO) {
+246:         goalDao.deleteGoal(goal)
+247:     }
+248: 
+249:     // Mock Tests CRUD
+250:     suspend fun insertMockTest(mockTest: MockTest): Long = withContext(Dispatchers.IO) {
+251:         mockTestDao.insertMockTest(mockTest)
+252:     }
+253: 
+254:     suspend fun updateMockTest(mockTest: MockTest) = withContext(Dispatchers.IO) {
+255:         mockTestDao.updateMockTest(mockTest)
+256:     }
+257: 
+258:     suspend fun deleteMockTest(mockTest: MockTest) = withContext(Dispatchers.IO) {
+259:         mockTestDao.deleteMockTest(mockTest)
+260:     }
+261: 
+262:     suspend fun getMockTestById(id: Long): MockTest? = withContext(Dispatchers.IO) {
+263:         mockTestDao.getMockTestById(id)
+264:     }
+265: 
+266:     // Mistake Notebook / Error Diary CRUD
+267:     suspend fun insertMistake(mistake: MistakeEntry): Long = withContext(Dispatchers.IO) {
+268:         mistakeDao.insertMistake(mistake)
+269:     }
+270: 
+271:     suspend fun updateMistake(mistake: MistakeEntry) = withContext(Dispatchers.IO) {
+272:         mistakeDao.updateMistake(mistake)
+273:     }
+274: 
+275:     suspend fun deleteMistake(mistake: MistakeEntry) = withContext(Dispatchers.IO) {
+276:         mistakeDao.deleteMistake(mistake)
+277:     }
+278: 
+279:     suspend fun markMistakeReviewed(mistake: MistakeEntry, newStatus: MistakeResolutionStatus) = withContext(Dispatchers.IO) {
+280:         val now = System.currentTimeMillis()
+281:         val nextReviewDays = when (newStatus) {
+282:             MistakeResolutionStatus.ACTIVE -> 1L // Review again tomorrow
+283:             MistakeResolutionStatus.UNDERSTOOD -> 4L // Review in 4 days
+284:             MistakeResolutionStatus.MASTERED -> 14L // Mastered, check in 2 weeks or archive
+285:         }
+286:         val nextTimestamp = now + (nextReviewDays * 24 * 60 * 60 * 1000L)
+287:         val updated = mistake.copy(
+288:             resolutionStatus = newStatus,
+289:             reviewCount = mistake.reviewCount + 1,
+290:             lastReviewedTimestamp = now,
+291:             nextReviewTimestamp = nextTimestamp
+292:         )
+293:         mistakeDao.updateMistake(updated)
+294:     }
+295: 
+296:     suspend fun toggleMistakeStar(mistake: MistakeEntry) = withContext(Dispatchers.IO) {
+297:         mistakeDao.updateMistake(mistake.copy(importanceStar = !mistake.importanceStar))
+298:     }
+299: 
+300:     // Settings
+301:     suspend fun updateSettings(settings: AppSettings) = withContext(Dispatchers.IO) {
+302:         settingsDao.insertOrUpdate(settings)
+303:     }
+304: 
+305:     // Reset Data
+306:     suspend fun resetToSampleData() = withContext(Dispatchers.IO) {
+307:         syllabusDao.deleteAllItems()
+308:         subjectDao.deleteAllSubjects()
+309:         studySessionDao.deleteAllSessions()
+310:         studyPlanDao.deleteAllPlans()
+311:         goalDao.deleteAllGoals()
+312:         mockTestDao.deleteAllMockTests()
+313: 
+314:         subjectDao.insertSubjects(PreloadData.defaultSubjects)
+315:         syllabusDao.insertItems(PreloadData.createDefaultSyllabusItems())
+316:         for (g in PreloadData.defaultGoals) goalDao.insertGoal(g)
+317:         for (p in PreloadData.createSampleStudyPlans()) studyPlanDao.insertPlan(p)
+318:         mockTestDao.insertMockTests(PreloadData.createSampleMockTests())
+319:         settingsDao.insertOrUpdate(AppSettings())
+320:     }
+321: 
+322:     // Export to JSON
+323:     suspend fun exportToJson(): String = withContext(Dispatchers.IO) {
+324:         val root = JSONObject()
+325:         val subjectsList = subjectDao.getAllSubjects().first()
+326:         val itemsList = syllabusDao.getAllItems().first()
+327:         val goalsList = goalDao.getAllGoals().first()
+328: 
+329:         val subArray = JSONArray()
+330:         for (s in subjectsList) {
+331:             val obj = JSONObject()
+332:             obj.put("id", s.id)
+333:             obj.put("name", s.name)
+334:             obj.put("code", s.code)
+335:             obj.put("colorHex", s.colorHex)
+336:             obj.put("iconName", s.iconName)
+337:             obj.put("description", s.description)
+338:             subArray.put(obj)
+339:         }
+340:         root.put("subjects", subArray)
+341: 
+342:         val itemArray = JSONArray()
+343:         for (it in itemsList) {
+344:             val obj = JSONObject()
+345:             obj.put("id", it.id)
+346:             obj.put("subjectId", it.subjectId)
+347:             obj.put("parentId", it.parentId ?: JSONObject.NULL)
+348:             obj.put("itemType", it.itemType.name)
+349:             obj.put("title", it.title)
+350:             obj.put("status", it.status.name)
+351:             obj.put("completionPercentage", it.completionPercentage)
+352:             obj.put("confidence", it.confidence)
+353:             obj.put("priority", it.priority.name)
+354:             obj.put("difficulty", it.difficulty.name)
+355:             obj.put("notes", it.notes)
+356:             obj.put("isImportant", it.isImportant)
+357:             obj.put("isBookmarked", it.isBookmarked)
+358:             obj.put("studyTimeMinutes", it.studyTimeMinutes)
+359:             obj.put("revisionCount", it.revisionCount)
+360:             obj.put("tags", it.tags)
+361:             obj.put("pyqTotal", it.pyqTotal)
+362:             obj.put("pyqAttempted", it.pyqAttempted)
+363:             obj.put("pyqCorrect", it.pyqCorrect)
+364:             itemArray.put(obj)
+365:         }
+366:         root.put("items", itemArray)
+367:         root.put("exportDate", System.currentTimeMillis())
+368:         root.put("version", "1.0")
+369: 
+370:         root.toString(2)
+371:     }
+372: 
+373:     // Export to CSV
+374:     suspend fun exportToCsv(): String = withContext(Dispatchers.IO) {
+375:         val subjects = subjectDao.getAllSubjects().first().associateBy { it.id }
+376:         val items = syllabusDao.getAllItems().first()
+377:         val sb = StringBuilder()
+378:         sb.append("Subject,Type,Title,Status,Completion %,Confidence,Priority,Difficulty,Study Time (mins),Revisions,Tags,PYQ Attempted,PYQ Correct,Notes\n")
+379:         for (it in items) {
+380:             val subName = subjects[it.subjectId]?.name ?: "Unknown"
+381:             val cleanNotes = it.notes.replace("\"", "\"\"").replace("\n", " ")
+382:             val cleanTitle = it.title.replace("\"", "\"\"")
+383:             sb.append("\"$subName\",\"${it.itemType.label}\",\"$cleanTitle\",\"${it.status.label}\",${it.completionPercentage},${it.confidence},\"${it.priority.label}\",\"${it.difficulty.label}\",${it.studyTimeMinutes},${it.revisionCount},\"${it.tags}\",${it.pyqAttempted},${it.pyqCorrect},\"$cleanNotes\"\n")
+384:         }
+385:         sb.toString()
+386:     }
+387: 
+388:     // Import from JSON
+389:     suspend fun importFromJson(jsonString: String): Boolean = withContext(Dispatchers.IO) {
+390:         try {
+391:             val root = JSONObject(jsonString)
+392:             if (root.has("subjects")) {
+393:                 val subArray = root.getJSONArray("subjects")
+394:                 for (i in 0 until subArray.length()) {
+395:                     val obj = subArray.getJSONObject(i)
+396:                     val s = Subject(
+397:                         id = obj.optLong("id", 0L),
+398:                         name = obj.getString("name"),
+399:                         code = obj.optString("code", ""),
+400:                         colorHex = obj.optString("colorHex", "#2D4F1E"),
+401:                         iconName = obj.optString("iconName", "School"),
+402:                         description = obj.optString("description", "")
+403:                     )
+404:                     subjectDao.insertSubject(s)
+405:                 }
+406:             }
+407:             if (root.has("items")) {
+408:                 val itemArray = root.getJSONArray("items")
+409:                 for (i in 0 until itemArray.length()) {
+410:                     val obj = itemArray.getJSONObject(i)
+411:                     val it = SyllabusItem(
+412:                         id = obj.optLong("id", 0L),
+413:                         subjectId = obj.getLong("subjectId"),
+414:                         parentId = if (obj.isNull("parentId")) null else obj.getLong("parentId"),
+415:                         itemType = try { ItemType.valueOf(obj.getString("itemType")) } catch (e: Exception) { ItemType.CHAPTER },
+416:                         title = obj.getString("title"),
+417:                         status = try { ChapterStatus.valueOf(obj.getString("status")) } catch (e: Exception) { ChapterStatus.NOT_STARTED },
+418:                         completionPercentage = obj.optInt("completionPercentage", 0),
+419:                         confidence = obj.optInt("confidence", 3),
+420:                         priority = try { Priority.valueOf(obj.getString("priority")) } catch (e: Exception) { Priority.MEDIUM },
+421:                         difficulty = try { Difficulty.valueOf(obj.getString("difficulty")) } catch (e: Exception) { Difficulty.MEDIUM },
+422:                         notes = obj.optString("notes", ""),
+423:                         isImportant = obj.optBoolean("isImportant", false),
+424:                         isBookmarked = obj.optBoolean("isBookmarked", false),
+425:                         studyTimeMinutes = obj.optInt("studyTimeMinutes", 0),
+426:                         revisionCount = obj.optInt("revisionCount", 0),
+427:                         tags = obj.optString("tags", ""),
+428:                         pyqTotal = obj.optInt("pyqTotal", 0),
+429:                         pyqAttempted = obj.optInt("pyqAttempted", 0),
+430:                         pyqCorrect = obj.optInt("pyqCorrect", 0)
+431:                     )
+432:                     syllabusDao.insertItem(it)
+433:                 }
+434:             }
+435:             true
+436:         } catch (e: Exception) {
+437:             e.printStackTrace()
+438:             false
+439:         }
+440:     }
+441: }

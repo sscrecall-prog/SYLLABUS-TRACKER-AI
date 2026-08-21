@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_green">#2D4F1E</color>
+    <color name="accent_cream">#F5E6CC</color>
+    <color name="terracotta">#E27D60</color>
+    <color name="charcoal">#4A4A4A</color>
+    <color name="dark_bg">#121812</color>
+    <color name="light_bg">#FAF7F2</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

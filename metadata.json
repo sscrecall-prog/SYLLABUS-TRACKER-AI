@@ -1,0 +1,6 @@
+{
+  "name": "Syllabus Tracker",
+  "description": "Comprehensive mobile-first competitive exam syllabus tracker, smart spaced-repetition revision planner, and study analytics app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

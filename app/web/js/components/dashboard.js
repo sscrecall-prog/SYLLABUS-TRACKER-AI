@@ -21,124 +21,68 @@ export function renderDashboard() {
   }
 
   return `
-    <div class="dashboard-view" style="display: flex; flex-direction: column; gap: 20px;">
-      <!-- Hero Emerald Banner Card (Matching Screenshot) -->
-      <div class="card" style="background: #0b664b; color: #ffffff; border: none; border-radius: 20px; padding: 24px;">
-        <div style="margin-bottom: 16px;">
-          <span style="font-size: 13px; color: rgba(255,255,255,0.85); font-weight: 600;">Good afternoon,</span>
-          <h2 style="font-size: 28px; font-weight: 800; margin-top: 2px; color: #ffffff;">${state.settings.userName || 'Sunny'} 👋</h2>
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-          <div style="background: rgba(255,255,255,0.12); padding: 10px 16px; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 22px;">🔥</span>
-            <div>
-              <span style="font-size: 18px; font-weight: 800; display: block; line-height: 1.1;">1</span>
-              <span style="font-size: 10px; font-weight: 700; opacity: 0.8; letter-spacing: 0.5px;">DAY STREAK</span>
-            </div>
+    <div class="dashboard-view">
+      <!-- Target Exam Banner -->
+      <div class="card" style="background: linear-gradient(135deg, var(--surface-color) 0%, var(--primary-container) 100%); border-color: var(--primary);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;">TARGET EXAM</span>
+            <h2 style="font-size: 22px; font-weight: 800; margin-top: 4px;">${state.settings.targetExam || 'SSC CGL 2026'}</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Daily Target: ${state.settings.dailyTargetMinutes || 180} Mins | Pace Velocity: Active</p>
           </div>
-
-          <div style="background: rgba(255,255,255,0.12); padding: 10px 16px; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 22px;">🎯</span>
-            <div>
-              <span style="font-size: 18px; font-weight: 800; display: block; line-height: 1.1;">60%</span>
-              <span style="font-size: 10px; font-weight: 700; opacity: 0.8; letter-spacing: 0.5px;">ACCURACY</span>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="background: var(--surface-variant); padding: 10px 16px; border-radius: var(--radius-md); text-align: center;">
+              <span style="font-size: 22px; font-weight: 800; color: var(--primary);">${daysRemainingText}</span>
+              <span style="font-size: 10px; display: block; color: var(--text-muted); font-weight: 700;">DAYS LEFT</span>
             </div>
-          </div>
-        </div>
-
-        <!-- Milestone Progress Line -->
-        <div style="margin-bottom: 18px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; opacity: 0.85; margin-bottom: 6px;">
-            <span>1 days</span>
-            <span>10-day milestone</span>
-          </div>
-          <div style="height: 6px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden;">
-            <div style="width: 10%; height: 100%; background: #f59e0b; border-radius: 99px;"></div>
-          </div>
-        </div>
-
-        <!-- Focus Area Tag -->
-        <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;">
-          <span>⚠️ Focus area:</span>
-          <span style="color: #ffffff;">One Word Substitution</span>
-        </div>
-      </div>
-
-      <!-- Today's Targets Section -->
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h3 style="font-size: 18px; font-weight: 800;">Today's Targets</h3>
-          <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">0/4 done</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
-          <!-- Target 1 -->
-          <div class="card target-card-item" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin: 0; cursor: pointer;">
-            <div style="width: 36px; height: 36px; background: #0b664b; color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; margin-bottom: 12px;">
-              R
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-              <span style="font-weight: 800; font-size: 15px;">RC Practice</span>
-              <span style="background: #fef3c7; color: #d97706; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 4px;">PRO</span>
-            </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">2 passages</p>
-            <span style="font-size: 13px; font-weight: 800; color: #0b664b;">Start →</span>
-          </div>
-
-          <!-- Target 2 -->
-          <div class="card target-card-item" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin: 0; cursor: pointer;">
-            <div style="width: 36px; height: 36px; background: #10b981; color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; margin-bottom: 12px;">
-              D
-            </div>
-            <div style="font-weight: 800; font-size: 15px; margin-bottom: 4px;">Daily Vocab</div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Learn today's 20 key words</p>
-            <span style="font-size: 13px; font-weight: 800; color: #10b981;">Start →</span>
-          </div>
-
-          <!-- Target 3 -->
-          <div class="card target-card-item" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin: 0; cursor: pointer;">
-            <div style="width: 36px; height: 36px; background: #0f766e; color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; margin-bottom: 12px;">
-              D
-            </div>
-            <div style="font-weight: 800; font-size: 15px; margin-bottom: 4px;">Daily Grammar Rule</div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">1 Rule</p>
-            <span style="font-size: 13px; font-weight: 800; color: #0f766e;">Start →</span>
-          </div>
-
-          <!-- Target 4 -->
-          <div class="card target-card-item" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin: 0; cursor: pointer;">
-            <div style="width: 36px; height: 36px; background: #2563eb; color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; margin-bottom: 12px;">
-              S
-            </div>
-            <div style="font-weight: 800; font-size: 15px; margin-bottom: 4px;">Spellings Test</div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">50 Spellings test</p>
-            <span style="font-size: 13px; font-weight: 800; color: #2563eb;">Start →</span>
           </div>
         </div>
       </div>
 
-      <!-- Intense Revision Section -->
-      <div>
-        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 12px;">Intense Revision</h3>
-        <div class="card" style="background: #852222; color: #ffffff; border: none; border-radius: 20px; padding: 24px;">
-          <span style="font-size: 11px; font-weight: 800; opacity: 0.8; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 8px;">SSC CGL - TIER - 1</span>
-          <h2 style="font-size: 20px; font-weight: 900; color: #ffffff; margin-bottom: 6px; letter-spacing: -0.2px; line-height: 1.3;">30 DAYS INTENSE REVISION TARGETS - CGL PRE 2026</h2>
-          <p style="font-size: 13px; opacity: 0.85; margin-bottom: 20px;">30-Day Intensive</p>
-
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; opacity: 0.85; margin-bottom: 6px;">
-            <span>0/30 days</span>
-            <span>0%</span>
+      <!-- Stats Grid -->
+      <div class="dashboard-grid">
+        <div class="stats-card">
+          <div class="stats-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--status-completed);">
+            <span class="material-symbols-outlined">donut_large</span>
           </div>
-          <div style="height: 6px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden; margin-bottom: 20px;">
-            <div style="width: 0%; height: 100%; background: #ffffff; border-radius: 99px;"></div>
+          <div class="stats-info">
+            <span class="stats-value" style="color: var(--status-completed);">${overallCompletion}%</span>
+            <span class="stats-label">Overall Completion</span>
           </div>
+        </div>
 
-          <button class="btn quick-action-btn" data-nav="revision" style="background: rgba(255,255,255,0.2); color: #ffffff; border: none; border-radius: 99px; padding: 10px 22px; font-weight: 800; font-size: 13px; cursor: pointer;">
-            Start now →
-          </button>
+        <div class="stats-card">
+          <div class="stats-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--status-in-progress);">
+            <span class="material-symbols-outlined">auto_stories</span>
+          </div>
+          <div class="stats-info">
+            <span class="stats-value">${completedChapters} / ${totalChapters}</span>
+            <span class="stats-label">Chapters Completed</span>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="stats-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--status-revision);">
+            <span class="material-symbols-outlined">update</span>
+          </div>
+          <div class="stats-info">
+            <span class="stats-value" style="color: var(--status-revision);">${revisionDueChapters}</span>
+            <span class="stats-label">Revisions Due</span>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="stats-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--status-weak);">
+            <span class="material-symbols-outlined">report_problem</span>
+          </div>
+          <div class="stats-info">
+            <span class="stats-value" style="color: var(--status-weak);">${weakChapters}</span>
+            <span class="stats-label">Weak Topics</span>
+          </div>
         </div>
       </div>
+
+      <!-- Overall Syllabus Progress Bar -->
 
       <!-- Stats & Subjects Breakdown -->
       <div class="card">

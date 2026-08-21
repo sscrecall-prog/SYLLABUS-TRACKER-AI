@@ -48,38 +48,19 @@ private val LightColorScheme = lightColorScheme(
     outline = LightGlassBorder
 )
 
-private val WarmColorScheme = lightColorScheme(
-    primary = Color(0xFF0B664B),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD8F3EC),
-    onPrimaryContainer = Color(0xFF084D38),
-    secondary = BrandTerracotta,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFDBCF),
-    onSecondaryContainer = Color(0xFF3B0900),
-    tertiary = Color(0xFF852222),
-    onTertiary = Color.White,
-    background = Color(0xFFF6F0E4),
-    onBackground = Color(0xFF2C251E),
-    surface = Color(0xFFFAF6EE),
-    onSurface = Color(0xFF2C251E),
-    surfaceVariant = Color(0xFFE8DFC8),
-    onSurfaceVariant = Color(0xFF6B6055),
-    outline = Color(0xFFE2D7BE)
-)
-
 @Composable
 fun SyllabusTrackerTheme(
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()
-    val colorScheme = when (themeMode) {
-        AppThemeMode.LIGHT -> LightColorScheme
-        AppThemeMode.WARM_CREAM -> WarmColorScheme
-        AppThemeMode.DARK -> DarkColorScheme
-        AppThemeMode.SYSTEM -> if (isSystemDark) DarkColorScheme else LightColorScheme
+    val isDark = when (themeMode) {
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+        AppThemeMode.SYSTEM -> isSystemDark
     }
+
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -58,6 +58,5 @@ enum class TimerMode(val label: String) {
 enum class AppThemeMode(val label: String) {
     SYSTEM("System Default"),
     LIGHT("Light Mode"),
-    WARM_CREAM("Warm Cream"),
     DARK("Dark Mode")
 }

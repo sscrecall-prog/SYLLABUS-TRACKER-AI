@@ -150,11 +150,13 @@ fun SettingsScreen() {
                             val isSelected = appSettings.themeMode == mode
                             val icon = when (mode) {
                                 AppThemeMode.LIGHT -> Icons.Default.WbSunny
+                                AppThemeMode.WARM_CREAM -> Icons.Default.Palette
                                 AppThemeMode.DARK -> Icons.Default.NightsStay
                                 AppThemeMode.SYSTEM -> Icons.Default.Settings
                             }
                             val tintColor = when (mode) {
                                 AppThemeMode.LIGHT -> Color(0xFFFFB300)
+                                AppThemeMode.WARM_CREAM -> Color(0xFFD97706)
                                 AppThemeMode.DARK -> Color(0xFF9575CD)
                                 AppThemeMode.SYSTEM -> MaterialTheme.colorScheme.primary
                             }
@@ -183,6 +185,7 @@ fun SettingsScreen() {
                                         text = when (mode) {
                                             AppThemeMode.SYSTEM -> "Auto"
                                             AppThemeMode.LIGHT -> "Light"
+                                            AppThemeMode.WARM_CREAM -> "Cream"
                                             AppThemeMode.DARK -> "Dark"
                                         },
                                         fontSize = 12.sp,

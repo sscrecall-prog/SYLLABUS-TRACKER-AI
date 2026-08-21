@@ -43,6 +43,8 @@ import com.example.ui.viewmodel.MockTestsViewModel
 import com.example.ui.viewmodel.SyllabusViewModel
 import com.example.ui.viewmodel.MainViewModel
 import com.example.ui.viewmodel.PlannerViewModel
+import com.example.ui.viewmodel.IntelligenceViewModel
+import com.example.data.intelligence.*
 
 enum class HomeSearchFilter(val label: String) {
     ALL("All Matches"),
@@ -67,6 +69,7 @@ fun DashboardScreen(
     val syllabusViewModel: SyllabusViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
     val plannerViewModel: PlannerViewModel = viewModel()
+    val intelligenceViewModel: IntelligenceViewModel = viewModel()
 
     val overallStats by analyticsViewModel.overallStats.collectAsState()
     val subjectStats by subjectViewModel.subjectStatsList.collectAsState()
@@ -81,6 +84,8 @@ fun DashboardScreen(
     val ambientSound by timerViewModel.ambientSound.collectAsState()
     val isAmbientPlaying by timerViewModel.isAmbientPlaying.collectAsState()
     val appSettings by settingsViewModel.appSettings.collectAsState()
+    val intelligenceSnapshot by intelligenceViewModel.snapshot.collectAsState()
+    val dailyBudget by intelligenceViewModel.dailyBudgetMinutes.collectAsState()
 
     var showEditExamDialog by remember { mutableStateOf(false) }
     var selectedSearchFilter by remember { mutableStateOf(HomeSearchFilter.ALL) }
@@ -590,12 +595,34 @@ fun DashboardScreen(
                 )
             }
 
-            // 0. EXAM COUNTDOWN & DAILY STUDY PACE CALCULATOR BENTO CARD
+            // 0. ADAPTIVE EXAM PACE & RECOVERY CARD
             item {
-                com.example.ui.components.ExamCountdownPaceCard(
-                    paceStats = examPaceStats,
-                    onEditExam = { showEditExamDialog = true },
-                    onOpenAnalytics = { onNavigate(NavDestination.ANALYTICS) }
+                AdaptiveExamPaceCard(
+                    pace = intelligenceSnapshot.pace,
+                    targetExamName = appSettings.targetExam,
+                    onEditExamDate = { showEditExamDialog = true }
+                )
+            }
+
+            // 0.1 EXAM READINESS ENGINE CARD
+            item {
+                ExamReadinessCard(
+                    readiness = intelligenceSnapshot.readiness,
+                    lastDaysMode = intelligenceSnapshot.lastDaysMode
+                )
+            }
+
+            // 0.2 TODAY'S ADAPTIVE PLAN CARD
+            item {
+                TodaysAdaptivePlanCard(
+                    plan = intelligenceSnapshot.todaysPlan,
+                    selectedBudgetMinutes = dailyBudget,
+                    onBudgetChanged = { intelligenceViewModel.setDailyBudgetMinutes(it) },
+                    onActionCompleted = { intelligenceViewModel.markPlanActionCompleted(it) },
+                    onActionClick = { item ->
+                        val ch = items.find { it.id == item.topicId }
+                        if (ch != null) syllabusViewModel.selectChapter(ch)
+                    }
                 )
             }
 

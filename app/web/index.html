@@ -31,14 +31,17 @@
         <!-- Navigation items rendered dynamically -->
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="streak-badge" id="sidebar-streak">
-          <span class="fire-icon">🔥</span>
-          <span class="streak-text">0d Streak</span>
+      <div class="sidebar-footer" style="flex-direction: column; align-items: stretch; gap: 12px;">
+        <div class="theme-selector-container">
+          <span class="theme-label">THEME</span>
+          <div class="theme-swatches" id="theme-swatches">
+            <button class="theme-swatch swatch-light" data-theme-val="light" title="Light Mode"></button>
+            <button class="theme-swatch swatch-warm" data-theme-val="warm" title="Warm Cream Mode"></button>
+            <button class="theme-swatch swatch-dark" data-theme-val="dark" title="Dark Mode"></button>
+          </div>
         </div>
-        <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Theme">
-          <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
-        </button>
+
+        <a href="#" class="back-hub-link" id="back-hub-btn">← Back to ExamRatha hub</a>
       </div>
     </aside>
 

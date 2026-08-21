@@ -49,23 +49,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Theme Handling */
 function initTheme() {
-  const currentTheme = localStorage.getItem('web_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', currentTheme);
+  const currentTheme = localStorage.getItem('web_theme') || 'warm';
+  setTheme(currentTheme);
+}
+
+function setTheme(theme) {
+  const validThemes = ['light', 'warm', 'dark'];
+  const newTheme = validThemes.includes(theme) ? theme : 'warm';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('web_theme', newTheme);
+
+  document.querySelectorAll('.theme-swatch').forEach(swatch => {
+    if (swatch.dataset.themeVal === newTheme) {
+      swatch.classList.add('active');
+    } else {
+      swatch.classList.remove('active');
+    }
+  });
+
   const icon = document.getElementById('theme-icon');
   if (icon) {
-    icon.textContent = currentTheme === 'dark' ? 'dark_mode' : 'light_mode';
+    if (newTheme === 'dark') icon.textContent = 'dark_mode';
+    else if (newTheme === 'warm') icon.textContent = 'palette';
+    else icon.textContent = 'light_mode';
   }
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('web_theme', next);
-  const icon = document.getElementById('theme-icon');
-  if (icon) {
-    icon.textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
-  }
+  const current = document.documentElement.getAttribute('data-theme') || 'warm';
+  const cycle = { 'dark': 'light', 'light': 'warm', 'warm': 'dark' };
+  setTheme(cycle[current] || 'warm');
 }
 
 /* Sidebar & Bottom Nav Renderer */
@@ -215,6 +228,15 @@ export function closeModal() {
 function bindHeaderAndNavEvents() {
   const themeToggle = document.getElementById('theme-toggle');
   if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+
+  const themeSwatches = document.getElementById('theme-swatches');
+  if (themeSwatches) {
+    themeSwatches.querySelectorAll('.theme-swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        setTheme(swatch.dataset.themeVal);
+      });
+    });
+  }
 
   const mobileMenuBtn = document.getElementById('mobile-menu-btn');
   const sidebar = document.getElementById('sidebar');

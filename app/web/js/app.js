@@ -18,12 +18,13 @@ import { renderCalendar, bindCalendarEvents } from './components/calendar.js';
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Home', icon: 'dashboard' },
   { id: 'syllabus', label: 'Syllabus', icon: 'auto_stories' },
-  { id: 'mistakes', label: 'Error Diary', icon: 'bookmark_remove' },
-  { id: 'mocktests', label: 'Mock Tests', icon: 'quiz' },
+  { id: 'subjects', label: 'Subjects', icon: 'school' },
+  { id: 'mistakes', label: 'Mistake Notebook', icon: 'bookmark_remove' },
   { id: 'revision', label: 'Revision', icon: 'update' },
   { id: 'planner', label: 'Planner', icon: 'calendar_month' },
+  { id: 'mocktests', label: 'Mock Tests', icon: 'quiz' },
   { id: 'analytics', label: 'Analytics', icon: 'analytics' },
-  { id: 'weak', label: 'Weak Topics', icon: 'report_problem' },
+  { id: 'weak', label: 'Weak', icon: 'report_problem' },
   { id: 'goals', label: 'Goals', icon: 'flag' },
   { id: 'timer', label: 'Timer', icon: 'timer' },
   { id: 'calendar', label: 'Calendar', icon: 'event' },
@@ -82,17 +83,41 @@ function toggleTheme() {
 }
 
 /* Sidebar & Bottom Nav Renderer */
+function getBadgeForNav(id) {
+  if (id === 'mistakes') {
+    const count = state.mistakes ? state.mistakes.filter(m => !m.isMastered).length : 0;
+    return count > 0 ? count : null;
+  }
+  if (id === 'revision') {
+    const count = state.items ? state.items.filter(c => c.itemType === 'CHAPTER' && c.nextRevisionTimestamp && c.nextRevisionTimestamp <= Date.now()).length : 0;
+    return count > 0 ? count : null;
+  }
+  if (id === 'weak') {
+    const count = state.items ? state.items.filter(c => c.itemType === 'CHAPTER' && (c.status === 'WEAK' || c.confidence <= 2)).length : 0;
+    return count > 0 ? count : null;
+  }
+  if (id === 'profile') {
+    const count = state.badges ? state.badges.filter(b => b.isUnlocked).length : 0;
+    return count > 0 ? count : null;
+  }
+  return null;
+}
+
 function renderNavigation() {
   const sidebarNav = document.getElementById('sidebar-nav');
   const bottomNav = document.getElementById('bottom-nav');
 
   if (sidebarNav) {
-    sidebarNav.innerHTML = NAV_ITEMS.map(item => `
-      <button class="nav-item ${state.currentNav === item.id ? 'active' : ''}" data-nav="${item.id}">
-        <span class="material-symbols-outlined">${item.icon}</span>
-        <span>${item.label}</span>
-      </button>
-    `).join('');
+    sidebarNav.innerHTML = NAV_ITEMS.map(item => {
+      const badge = getBadgeForNav(item.id);
+      return `
+        <button class="nav-item ${state.currentNav === item.id ? 'active' : ''}" data-nav="${item.id}">
+          <span class="material-symbols-outlined">${item.icon}</span>
+          <span>${item.label}</span>
+          ${badge ? `<span class="nav-badge">${badge}</span>` : ''}
+        </button>
+      `;
+    }).join('');
 
     sidebarNav.querySelectorAll('.nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -103,14 +128,24 @@ function renderNavigation() {
   }
 
   if (bottomNav) {
-    // Mobile bottom nav top 5 destinations
-    const mobileItems = NAV_ITEMS.slice(0, 5);
-    bottomNav.innerHTML = mobileItems.map(item => `
-      <button class="bottom-nav-item ${state.currentNav === item.id ? 'active' : ''}" data-nav="${item.id}">
-        <span class="material-symbols-outlined">${item.icon}</span>
-        <span>${item.label}</span>
-      </button>
-    `).join('');
+    // Mobile bottom nav top 5 destinations (Home, Syllabus, Mistake Notebook, Revision, Profile)
+    const mobileItems = [
+      NAV_ITEMS.find(i => i.id === 'dashboard'),
+      NAV_ITEMS.find(i => i.id === 'syllabus'),
+      NAV_ITEMS.find(i => i.id === 'mistakes'),
+      NAV_ITEMS.find(i => i.id === 'revision'),
+      NAV_ITEMS.find(i => i.id === 'profile')
+    ].filter(Boolean);
+
+    bottomNav.innerHTML = mobileItems.map(item => {
+      const badge = getBadgeForNav(item.id);
+      return `
+        <button class="bottom-nav-item ${state.currentNav === item.id ? 'active' : ''}" data-nav="${item.id}">
+          <span class="material-symbols-outlined">${item.icon}</span>
+          <span>${item.label}</span>
+        </button>
+      `;
+    }).join('');
 
     bottomNav.querySelectorAll('.bottom-nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -137,6 +172,7 @@ function renderCurrentScreen() {
       contentArea.innerHTML = html;
       bindDashboardEvents(contentArea);
       break;
+    case 'subjects':
     case 'syllabus':
       html = renderSyllabus();
       contentArea.innerHTML = html;

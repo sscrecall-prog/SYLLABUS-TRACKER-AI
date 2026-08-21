@@ -1,56 +1,100 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="100%" height="100%">
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#0F5E36" />
-      <stop offset="100%" stop-color="#05331C" />
+    <!-- Rich Emerald Green Gradient matching uploaded image -->
+    <linearGradient id="logoBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B7B47" />
+      <stop offset="50%" stop-color="#126337" />
+      <stop offset="100%" stop-color="#073B20" />
     </linearGradient>
 
-    <!-- Gold Checkmark Gradient -->
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFD000" />
-      <stop offset="100%" stop-color="#E69500" />
-    </linearGradient>
-
-    <!-- White 'S' Shadow -->
-    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.35" />
+    <!-- Subtle Drop Shadow for 3D depth -->
+    <filter id="logoShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.32" />
     </filter>
   </defs>
 
-  <!-- Dark Green Squircle Base -->
-  <rect x="4" y="4" width="100" height="100" rx="24" ry="24" fill="url(#bgGrad)" />
+  <!-- Squircle Base Container -->
+  <rect x="4" y="4" width="100" height="100" rx="24" ry="24" fill="url(#logoBg)" />
 
-  <!-- Gold Checkmark inside the upper loop of 'S' -->
-  <path fill="url(#goldGrad)" filter="url(#dropShadow)" d="M47,40.5 L53,46.5 L65.5,34 C67,32.5 69,32.5 70,34 C71.2,35.2 71.2,37 69.8,38.5 L55.2,53 C54,54.2 52,54.2 50.8,53 L42.5,44.7 C41.2,43.4 41.2,41.5 42.5,40.2 C43.8,39 45.8,39 47,40.5 Z" />
+  <!-- Pure White Open Book & Checkmark Symbol -->
+  <g filter="url(#logoShadow)">
+    <!-- 1. Secondary Back-Page Layer (Bottom Left Shadow Page) -->
+    <path fill="#E2F5E9" d="M 25,36 C 25,36 23.5,63 23.5,66 C 23.5,68.5 25.5,70.5 29,69.5 C 36,67.5 47,62 52,59.5 L 52,55 C 46,58 35.5,63 29.5,64.5 L 29.5,36 Z" />
 
-  <!-- White Stylized 'S' Ribbon with Book Fold at Bottom -->
-  <g filter="url(#dropShadow)">
-    <!-- Main Ribbon Spine 'S' -->
+    <!-- 2. Main Open Book Body (Left Page, Right Page & Checkmark Base) -->
+    <path fill="#FFFFFF" fill-rule="evenodd" d="
+      M 28,30 
+      C 28,28.8 29.8,28 31.5,28.6 
+      C 39.5,30.8 49,36 53.5,39 
+      C 58,36 67.5,30.8 75.5,28.6 
+      C 77.2,28 79,28.8 79,30 
+      L 79,40 
+      C 79,41 78.2,41.8 77.2,42.2 
+      C 70,45 60,50 56,54 
+      L 56,59 
+      C 63,52 74,44 83,39 
+      C 84.5,38.2 86,39.5 85.2,41 
+      L 58.5,80.5 
+      C 57.2,82.5 54.8,82.8 53.2,81.2 
+      L 48,76 
+      C 46.8,74.8 46.8,72.8 48,71.6 
+      C 49.2,70.4 51.2,70.4 52.4,71.6 
+      L 55,74.2 
+      L 52,59.5 
+      L 52,43 
+      C 47.5,39.5 37.5,34 30.8,31.2 
+      C 29.2,30.5 28,31.5 28,33 
+      L 28,60 
+      C 28,62 29.5,63.5 32.5,63.2 
+      C 39,62.5 48.5,58 52,55 
+      L 52,66.5 
+      C 48,69 38,73.5 30.5,73.8 
+      C 26,74 23.5,71 23.5,66 
+      L 23.5,36 
+      Z
+    " />
+
+    <!-- 3. Simplified Precise Single-Path High Contrast White Emblem -->
+    <!-- Left Page Body -->
     <path fill="#FFFFFF" d="
-      M 40,24 
-      C 60,24 77,28 77,38
-      C 77,48 50,47 40,53
-      C 30,59 30,73 40,82
-      C 52,91 66,88 66,88
-      C 68,87.5 70,89 70,91
-      C 70,93 68,94 64,95.5
-      C 48,100 24,91 24,76
-      C 24,61 48,58 60,52
-      C 70,47 67,33 52,32
-      C 41,31 38,36 38,36
-      C 36.5,37.5 34,37 33,35
-      C 32,33 33,30 36,28
-      C 40,25 40,24 40,24 Z" />
+      M 27.5,30 
+      C 27.5,28.8 29,28 31,28.8 
+      C 39,31 48,36 53,39.2 
+      L 53,74 
+      C 48,70 37,64.5 30.5,64.5 
+      C 28.5,64.5 27.5,63.2 27.5,61 
+      Z" />
 
-    <!-- Folded Book Pages at Bottom Left of 'S' -->
-    <path fill="#F0FDF4" d="M 28,76 C 28,70 38,64 54,64 L 56,71 C 42,71 34,75 34,80 Z" />
-    
-    <!-- Page Book Lines (Green) -->
-    <rect x="36" y="67" width="12" height="2" rx="1" fill="#15803D" />
-    <rect x="36" y="71" width="16" height="2" rx="1" fill="#15803D" />
-    
-    <!-- Leaf Green Fold Accent at bottom page corner -->
-    <path fill="#4ADE80" d="M 28,76 C 28,81 32,84 37,84 C 33,84 30,81 28,76 Z" />
+    <!-- Left Page Slot 1 -->
+    <rect x="32" y="37" width="13" height="3" rx="1.5" fill="#126337" />
+    <!-- Left Page Slot 2 -->
+    <rect x="32" y="44" width="13" height="3" rx="1.5" fill="#126337" />
+    <!-- Left Page Slot 3 -->
+    <rect x="32" y="51" width="13" height="3" rx="1.5" fill="#126337" />
+
+    <!-- Top Right Page -->
+    <path fill="#FFFFFF" d="
+      M 55,39.2 
+      C 60,36 69,31 77,28.8 
+      C 79,28 80.5,28.8 80.5,30 
+      L 80.5,41 
+      C 80.5,42 79.5,42.8 78.5,43.2 
+      C 71,46 60,51.5 55,56 
+      Z" />
+
+    <!-- Big Checkmark Swoosh (Spine & Right Wing) -->
+    <path fill="#FFFFFF" d="
+      M 53,58 
+      L 56,58 
+      C 62.5,51 73,43 82.5,38.5 
+      C 84.2,37.7 85.8,39.2 84.8,40.8 
+      L 58.5,80.5 
+      C 57.2,82.5 54.8,82.8 53.2,81.2 
+      L 48,76 
+      C 46.8,74.8 46.8,72.8 48,71.6 
+      C 49.2,70.4 51.2,70.4 52.4,71.6 
+      L 55,74.2 
+      L 53,60 
+      Z" />
   </g>
 </svg>

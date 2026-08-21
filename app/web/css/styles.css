@@ -486,6 +486,13 @@ body {
   align-items: center;
   gap: 16px;
   box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(45, 138, 104, 0.4);
 }
 
 .stats-icon {
@@ -522,6 +529,13 @@ body {
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(45, 138, 104, 0.4);
 }
 
 .card-header {

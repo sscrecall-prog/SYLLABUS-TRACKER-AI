@@ -237,13 +237,22 @@ fun ChapterDetailSheet(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Why This Topic Analysis
+                    // Sprint 3: Performance Recommendation & Feedback
+                    val retention = remember(liveChapter) {
+                        PerformanceFeedbackEngine.calculateRetentionStrength(liveChapter, emptyList())
+                    }
+                    val recommendation = remember(liveChapter, intel, retention) {
+                        PerformanceFeedbackEngine.generatePerformanceRecommendation(liveChapter, intel, null, retention, null)
+                    }
+
+                    // Engine Analysis & Performance Feedback
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                            .padding(8.dp)
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             text = "💡 Engine Analysis: $whyExplanation",
@@ -251,8 +260,59 @@ fun ChapterDetailSheet(
                             color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 14.sp
                         )
+
+                        // Sprint 3 Recommendation Callout
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Column {
+                                Text(
+                                    text = "Actionable Advice: ${recommendation.actionableAdvice}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Reason: ${recommendation.reason}",
+                                    fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Retention status
+                        if (retention.hasSufficientData) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Memory Retention: ${retention.state.label}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = when (retention.state) {
+                                        RetentionState.STRONG -> Color(0xFF10B981)
+                                        RetentionState.MODERATE -> Color(0xFFF59E0B)
+                                        RetentionState.WEAK -> Color(0xFFEF4444)
+                                        RetentionState.UNKNOWN -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                        }
+
                         if (isMaint) {
-                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "🛡️ Maintenance Mode: Core syllabus time should prioritize weak chapters; keep this fresh with spaced revision.",
                                 fontSize = 10.sp,

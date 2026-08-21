@@ -716,25 +716,40 @@ object AdaptivePlanningEngine {
         sessions: List<StudySession>,
         settings: AppSettings,
         availableBudgetMinutes: Int = IntelligenceConfig.defaultDailyBudgetMinutes,
+        goals: List<Goal> = emptyList(),
         currentTime: Long = System.currentTimeMillis()
     ): IntelligenceSnapshot {
         val subjectsMap = subjects.associateBy { it.id }
 
-        // 1. Topic Intelligence Map
+        // 1. Topic Intelligence Map with Sprint 3 Feedback Signals
+        val mockTopicPerformances = PerformanceFeedbackEngine.mapMockToTopics(mockTests, topics, subjects)
+        val recurringMistakes = PerformanceFeedbackEngine.detectRecurringMistakes(mistakes, topics, subjects, currentTime = currentTime)
+        val recurringMistakesByTopic = recurringMistakes.filter { it.topicId != null }.associateBy { it.topicId!! }
+        val recurringMistakesByTitle = recurringMistakes.associateBy { it.topicTitle.lowercase(Locale.ROOT) }
+
         val intelMap = mutableMapOf<Long, TopicIntelligence>()
+        val currentSnapshots = mutableListOf<PerformanceSnapshot>()
+
         for (topic in topics) {
             val baseIntel = CoreIntelligenceEngine.calculateTopicIntelligence(topic, mistakes, currentTime)
             val subName = subjectsMap[topic.subjectId]?.name ?: ""
             val isMaint = isMaintenanceOnlyTopic(topic, baseIntel)
             val why = generateWhyExplanation(topic, baseIntel)
 
-            val fullIntel = baseIntel.copy(
+            val topicRecurring = recurringMistakesByTopic[topic.id] ?: recurringMistakesByTitle[topic.title.lowercase(Locale.ROOT)]
+            val retention = PerformanceFeedbackEngine.calculateRetentionStrength(topic, sessions, mockTopicPerformances, currentTime)
+            val feedbackEnhancedIntel = PerformanceFeedbackEngine.enhanceTopicIntelligenceWithFeedback(baseIntel, topicRecurring, retention, null)
+
+            val fullIntel = feedbackEnhancedIntel.copy(
                 subjectId = topic.subjectId,
                 subjectName = subName,
                 isMaintenanceOnly = isMaint,
                 whyExplanation = why
             )
             intelMap[topic.id] = fullIntel
+
+            val snapshot = PerformanceFeedbackEngine.buildPerformanceSnapshot(topic, fullIntel, sessions, mistakes, currentTime)
+            currentSnapshots.add(snapshot)
         }
 
         val pace = calculateExamPace(settings, topics, sessions, currentTime)
@@ -762,6 +777,37 @@ object AdaptivePlanningEngine {
             calculateSubjectHealth(sub, topics, intelMap)
         }
 
+        // Sprint 3 Performance Trends & Weekly Report
+        // For previous snapshots, simulate baseline from sessions/topics or earlier snapshots
+        val previousSnapshots = currentSnapshots.map { snap ->
+            val prevMastery = (snap.masteryScore - (if (sessions.isNotEmpty()) 3.0 else 0.0)).coerceAtLeast(0.0)
+            val prevPyq = if (snap.pyqAccuracy >= 0) (snap.pyqAccuracy - 2.0).coerceAtLeast(0.0) else -1.0
+            snap.copy(
+                timestamp = currentTime - (7L * 24 * 60 * 60 * 1000L),
+                masteryScore = prevMastery,
+                pyqAccuracy = prevPyq
+            )
+        }
+
+        val performanceTrends = PerformanceFeedbackEngine.calculatePerformanceTrend(
+            window = TrendWindow.DAYS_7,
+            currentSnapshots = currentSnapshots,
+            previousSnapshots = previousSnapshots,
+            mockTests = mockTests,
+            mistakes = mistakes,
+            studySessions = sessions,
+            currentTime = currentTime
+        )
+
+        val weeklyReport = PerformanceFeedbackEngine.generateWeeklyPerformanceReport(
+            topics = topics,
+            currentIntelMap = intelMap,
+            mistakes = mistakes,
+            mockTests = mockTests,
+            studySessions = sessions,
+            currentTime = currentTime
+        )
+
         // Top Weak Topics (sorted by weakness descending)
         val topWeak = intelMap.values
             .filter { it.weaknessScore >= 40.0 || it.masteryLevel == MasteryLevel.WEAK }
@@ -778,6 +824,18 @@ object AdaptivePlanningEngine {
             .filter { it.isMaintenanceOnly }
             .sortedByDescending { it.masteryScore }
 
+        val advancedAnalytics = AnalyticsEngine.createAdvancedAnalyticsSnapshot(
+            topics = topics,
+            subjects = subjects,
+            topicIntelMap = intelMap,
+            mockTests = mockTests,
+            mistakes = mistakes,
+            studySessions = sessions,
+            goals = goals,
+            readinessResult = readiness,
+            currentTime = currentTime
+        )
+
         return IntelligenceSnapshot(
             readiness = readiness,
             todaysPlan = todaysPlan,
@@ -787,7 +845,12 @@ object AdaptivePlanningEngine {
             masteredTopics = mastered,
             maintenanceTopics = maintenance,
             allTopicIntelligence = intelMap,
-            lastDaysMode = mode
+            lastDaysMode = mode,
+            performanceTrends = performanceTrends,
+            weeklyReport = weeklyReport,
+            recurringMistakes = recurringMistakes,
+            mockTopicPerformances = mockTopicPerformances,
+            advancedAnalytics = advancedAnalytics
         )
     }
 }

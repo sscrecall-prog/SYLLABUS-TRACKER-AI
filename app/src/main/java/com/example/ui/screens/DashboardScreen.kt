@@ -88,6 +88,7 @@ fun DashboardScreen(
     val dailyBudget by intelligenceViewModel.dailyBudgetMinutes.collectAsState()
 
     var showEditExamDialog by remember { mutableStateOf(false) }
+    var showWeeklyReportDialog by remember { mutableStateOf(false) }
     var selectedSearchFilter by remember { mutableStateOf(HomeSearchFilter.ALL) }
 
     val revDueChapters by syllabusViewModel.revisionDueChapters.collectAsState()
@@ -623,6 +624,16 @@ fun DashboardScreen(
                         val ch = items.find { it.id == item.topicId }
                         if (ch != null) syllabusViewModel.selectChapter(ch)
                     }
+                )
+            }
+
+            // 0.3 PERFORMANCE TREND & FEEDBACK CARD (Sprint 3)
+            item {
+                PerformanceTrendDashboardCard(
+                    trendResult = intelligenceSnapshot.performanceTrends,
+                    weeklyReport = intelligenceSnapshot.weeklyReport,
+                    recurringMistakes = intelligenceSnapshot.recurringMistakes,
+                    onOpenWeeklyReport = { showWeeklyReportDialog = true }
                 )
             }
 
@@ -1562,6 +1573,13 @@ fun DashboardScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showWeeklyReportDialog && intelligenceSnapshot.weeklyReport != null) {
+        WeeklyReportDialog(
+            report = intelligenceSnapshot.weeklyReport!!,
+            onDismiss = { showWeeklyReportDialog = false }
         )
     }
 }

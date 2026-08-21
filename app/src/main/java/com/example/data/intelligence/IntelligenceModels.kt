@@ -239,5 +239,12 @@ data class IntelligenceSnapshot(
     val masteredTopics: List<TopicIntelligence>,
     val maintenanceTopics: List<TopicIntelligence>,
     val allTopicIntelligence: Map<Long, TopicIntelligence>,
-    val lastDaysMode: LastDaysExamMode
+    val lastDaysMode: LastDaysExamMode,
+    // Sprint 3 additions
+    val performanceTrends: PerformanceTrendResult? = null,
+    val weeklyReport: WeeklyPerformanceReport? = null,
+    val recurringMistakes: List<RecurringMistakeGroup> = emptyList(),
+    val mockTopicPerformances: List<MockTopicPerformance> = emptyList(),
+    // Sprint 5 additions
+    val advancedAnalytics: AdvancedAnalyticsSnapshot? = null
 )

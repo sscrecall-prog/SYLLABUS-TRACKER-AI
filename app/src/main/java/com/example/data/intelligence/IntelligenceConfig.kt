@@ -70,4 +70,39 @@ object IntelligenceConfig {
     var defaultDailyBudgetMinutes: Int = 120
     var minActionDurationMinutes: Int = 15
     var maxActionDurationMinutes: Int = 45
+
+    // -------------------------------------------------------------------------
+    // Sprint 3: Recurring Mistake Thresholds
+    // -------------------------------------------------------------------------
+    var recurringMistakeRecentWindowDays: Int = 14
+    var isolatedMistakeMaxOccurrences: Int = 1
+    var repeatedMistakeMaxOccurrences: Int = 3
+    var recurringMistakeMinOccurrences: Int = 4
+
+    // -------------------------------------------------------------------------
+    // Sprint 3: Performance Trend Thresholds
+    // -------------------------------------------------------------------------
+    var trendMinSignificantChangePercentage: Double = 3.0
+
+    // -------------------------------------------------------------------------
+    // Sprint 3: Topic Improvement Thresholds (Score Deltas)
+    // -------------------------------------------------------------------------
+    var significantImprovementThreshold: Double = 15.0
+    var moderateImprovementThreshold: Double = 5.0
+    var declineThreshold: Double = -5.0
+
+    // -------------------------------------------------------------------------
+    // Sprint 3: Study Effectiveness Thresholds (0-100 Score)
+    // -------------------------------------------------------------------------
+    const val EFFECTIVENESS_LOW_MAX: Double = 39.99
+    const val EFFECTIVENESS_MODERATE_MAX: Double = 59.99
+    const val EFFECTIVENESS_GOOD_MAX: Double = 79.99
+    // HIGH: 80.0 to 100.0
+
+    // -------------------------------------------------------------------------
+    // Sprint 3: Retention Validation Thresholds
+    // -------------------------------------------------------------------------
+    var retentionStrongMinAccuracy: Double = 80.0
+    var retentionModerateMinAccuracy: Double = 60.0
+    var retentionFollowUpIntervalDays: Int = 7
 }

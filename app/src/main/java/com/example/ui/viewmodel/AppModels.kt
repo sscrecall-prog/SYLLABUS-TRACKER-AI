@@ -111,7 +111,9 @@ data class AnalyticsUiState(
     val selectedTimeRange: TimeRange = TimeRange.LAST_7_DAYS,
     val selectedMetric: TrendMetric = TrendMetric.STUDY_HOURS,
     val selectedSubjectIdForDetail: Long? = null,
-    val trendDataPoints: List<TrendDataPoint> = emptyList()
+    val trendDataPoints: List<TrendDataPoint> = emptyList(),
+    val advancedAnalytics: com.example.data.intelligence.AdvancedAnalyticsSnapshot? = null,
+    val selectedAnalyticsWindow: com.example.data.intelligence.AnalyticsTimeWindow = com.example.data.intelligence.AnalyticsTimeWindow.DAYS_30
 )
 
 data class MockTestsUiState(

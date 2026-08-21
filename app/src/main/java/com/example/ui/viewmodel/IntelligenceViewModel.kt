@@ -31,7 +31,8 @@ class IntelligenceViewModel(application: Application) : BaseViewModel(applicatio
         mockTests,
         studySessions,
         appSettings,
-        _dailyBudgetMinutes
+        _dailyBudgetMinutes,
+        goals
     ) { args: Array<Any?> ->
         val allItems = args[0] as List<SyllabusItem>
         val allSubs = args[1] as List<Subject>
@@ -40,6 +41,7 @@ class IntelligenceViewModel(application: Application) : BaseViewModel(applicatio
         val allSessions = args[4] as List<StudySession>
         val settings = args[5] as AppSettings
         val budget = args[6] as Int
+        val allGoals = args[7] as List<Goal>
 
         val safeBudget = if (budget > 0) budget else IntelligenceConfig.defaultDailyBudgetMinutes
         AdaptivePlanningEngine.createIntelligenceSnapshot(
@@ -49,7 +51,8 @@ class IntelligenceViewModel(application: Application) : BaseViewModel(applicatio
             mockTests = allMocks,
             sessions = allSessions,
             settings = settings,
-            availableBudgetMinutes = safeBudget
+            availableBudgetMinutes = safeBudget,
+            goals = allGoals
         )
     }.stateIn(
         viewModelScope,

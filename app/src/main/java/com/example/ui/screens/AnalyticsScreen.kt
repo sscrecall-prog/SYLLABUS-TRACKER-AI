@@ -36,10 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Subject
-import com.example.ui.components.BentoCard
-import com.example.ui.components.GradientCard
-import com.example.ui.components.LinearSyllabusBar
-import com.example.ui.components.StatMiniCard
+import com.example.data.intelligence.*
+import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.NavDestination
 import com.example.ui.viewmodel.SubjectStats
@@ -72,6 +70,17 @@ fun AnalyticsScreen(
     val selectedMetric = uiState.selectedMetric
     val selectedSubjectIdForDetail = uiState.selectedSubjectIdForDetail
     val trendDataPoints = uiState.trendDataPoints
+    val advAnalytics = uiState.advancedAnalytics
+    val selectedAnalyticsWindow = uiState.selectedAnalyticsWindow
+
+    var showMonthlyReviewDialog by remember { mutableStateOf(false) }
+
+    if (showMonthlyReviewDialog && advAnalytics?.monthlyReview != null) {
+        MonthlyReviewDialog(
+            review = advAnalytics.monthlyReview,
+            onDismiss = { showMonthlyReviewDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -143,6 +152,100 @@ fun AnalyticsScreen(
                         )
                     }
                 }
+            }
+        }
+
+        // 1.5 SPRINT 5 ADVANCED ANALYTICS WINDOW SELECTOR & LONG-TERM METRICS
+        if (advAnalytics != null) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "📊 Advanced Intelligence & Analytics",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        if (advAnalytics.monthlyReview != null) {
+                            TextButton(
+                                onClick = { showMonthlyReviewDialog = true },
+                                modifier = Modifier.testTag("open_monthly_review_btn")
+                            ) {
+                                Text(
+                                    text = "Monthly Review →",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BrandForestGreen
+                                )
+                            }
+                        }
+                    }
+
+                    AdvancedAnalyticsWindowSelector(
+                        selectedWindow = selectedAnalyticsWindow,
+                        onWindowSelected = { analyticsViewModel.setAnalyticsWindow(it) }
+                    )
+                }
+            }
+
+            // Long-Term Performance Card for selected window
+            item {
+                val currentTrend = when (selectedAnalyticsWindow) {
+                    AnalyticsTimeWindow.DAYS_7 -> advAnalytics.longTerm7D
+                    AnalyticsTimeWindow.DAYS_15 -> advAnalytics.longTerm15D
+                    AnalyticsTimeWindow.DAYS_30 -> advAnalytics.longTerm30D
+                    AnalyticsTimeWindow.DAYS_90 -> advAnalytics.longTerm90D
+                    AnalyticsTimeWindow.ALL_TIME -> advAnalytics.longTermAllTime
+                }
+                LongTermPerformanceCard(result = currentTrend)
+            }
+
+            // Mastery Growth Trajectory Card
+            item {
+                MasteryGrowthCard(growth = advAnalytics.masteryGrowth)
+            }
+
+            // Subject Health & Comparisons Ranking Card
+            item {
+                SubjectComparisonCard(result = advAnalytics.subjectComparisons)
+            }
+
+            // Study Consistency & Habit Adherence Card
+            item {
+                StudyConsistencyCard(consistency = advAnalytics.consistency)
+            }
+
+            // Meaningful Streaks & Compassionate Recovery Card
+            item {
+                MeaningfulStreaksCard(
+                    studyStreak = advAnalytics.studyStreak,
+                    revisionStreak = advAnalytics.revisionStreak
+                )
+            }
+
+            // Quality-Adjusted Study Time Card
+            item {
+                QualityAdjustedStudyTimeCard(quality = advAnalytics.qualityStudyTime)
+            }
+
+            // Productivity Patterns & Peak Hours Card
+            item {
+                ProductivityPatternsCard(patterns = advAnalytics.productivityPatterns)
+            }
+
+            // Meaningful Achievements & Learning Milestones Card
+            item {
+                MeaningfulAchievementsCard(achievements = advAnalytics.achievements)
+            }
+
+            // Personal Records Wall (Bests)
+            item {
+                PersonalRecordsCard(records = advAnalytics.personalRecords)
             }
         }
 

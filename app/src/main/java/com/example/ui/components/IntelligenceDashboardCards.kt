@@ -763,3 +763,414 @@ fun AdaptiveExamPaceCard(
         }
     }
 }
+
+/**
+ * Sprint 3: Compact Performance Trend & Feedback Card for Dashboard.
+ */
+@Composable
+fun PerformanceTrendDashboardCard(
+    trendResult: PerformanceTrendResult?,
+    weeklyReport: WeeklyPerformanceReport?,
+    recurringMistakes: List<RecurringMistakeGroup>,
+    onOpenWeeklyReport: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (trendResult == null && weeklyReport == null) return
+
+    val trend = trendResult ?: return
+
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("performance_trend_dashboard_card"),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header Row: Title & Report button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.TrendingUp,
+                            contentDescription = "Performance Trend",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Performance Trend",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${trend.window.label} Velocity & Feedback",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (weeklyReport != null && weeklyReport.hasSufficientData) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.clickable { onOpenWeeklyReport() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Weekly Report",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 4-Metric Trend Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TrendMetricBox(
+                    label = "Mastery",
+                    metric = trend.masteryTrend,
+                    modifier = Modifier.weight(1f)
+                )
+                TrendMetricBox(
+                    label = "PYQ Accuracy",
+                    metric = trend.pyqAccuracyTrend,
+                    modifier = Modifier.weight(1f)
+                )
+                TrendMetricBox(
+                    label = "Mock Score",
+                    metric = trend.mockScoreTrend,
+                    modifier = Modifier.weight(1f)
+                )
+                TrendMetricBox(
+                    label = "Mistakes",
+                    metric = trend.mistakesTrend,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Top Improvement & Needs Attention Highlight Strip
+            val topImprovement = weeklyReport?.biggestImprovementTopic ?: "Steady Progress"
+            val needsAttention = recurringMistakes.firstOrNull()?.topicTitle ?: weeklyReport?.biggestDeclineTopic ?: "None"
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981).copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ThumbUp,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column {
+                        Text("TOP IMPROVEMENT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                        Text(
+                            text = topImprovement,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444).copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column {
+                        Text("NEEDS ATTENTION", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                        Text(
+                            text = needsAttention,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // Recurring Mistake Alert Banner (if recurring errors exist)
+            val topRecurring = recurringMistakes.firstOrNull { it.level == RecurringMistakeLevel.RECURRING || it.level == RecurringMistakeLevel.REPEATED }
+            if (topRecurring != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Recurring Error: ${topRecurring.topicTitle} — ${topRecurring.primaryCategory?.label ?: "Concept Gap"}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendMetricBox(
+    label: String,
+    metric: TrendMetric,
+    modifier: Modifier = Modifier
+) {
+    val dirColor = when (metric.direction) {
+        TrendDirection.IMPROVING -> Color(0xFF10B981)
+        TrendDirection.DECLINING -> Color(0xFFEF4444)
+        TrendDirection.STABLE -> Color(0xFF3B82F6)
+        TrendDirection.INSUFFICIENT_DATA -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(vertical = 8.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = if (metric.hasSufficientData) metric.formattedDisplay else "–",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = dirColor
+        )
+    }
+}
+
+/**
+ * Weekly Intelligence Report Dialog.
+ */
+@Composable
+fun WeeklyReportDialog(
+    report: WeeklyPerformanceReport,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Assessment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Weekly Intelligence Report",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Headline Summary
+                Text(
+                    text = report.headlineSummary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Key Metric Rows
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WeeklyReportRow("Mastery", report.masteryMetric.before, report.masteryMetric.after, report.masteryMetric.delta)
+                    WeeklyReportRow("PYQ Accuracy", report.pyqAccuracyMetric.before, report.pyqAccuracyMetric.after, report.pyqAccuracyMetric.delta, "%")
+                    WeeklyReportRow("Mock Score", report.mockScoreMetric.before, report.mockScoreMetric.after, report.mockScoreMetric.delta, "%")
+                    WeeklyReportRow("Active Mistakes", report.mistakesMetric.before, report.mistakesMetric.after, report.mistakesMetric.delta, isInverted = true)
+                    WeeklyReportRow("Weak Topics", report.weakTopicsMetric.before, report.weakTopicsMetric.after, report.weakTopicsMetric.delta, isInverted = true)
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Effectiveness Rating Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Study Effectiveness:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "${report.overallEffectivenessScore.roundToInt()} / 100 • ${report.overallEffectivenessLevel.label}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                // Actionable Takeaways
+                if (report.actionableTakeaways.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Actionable Recommendations:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    for (t in report.actionableTakeaways) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text("• ", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Text(t, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, shape = RoundedCornerShape(10.dp)) {
+                Text("Close Report")
+            }
+        },
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@Composable
+private fun WeeklyReportRow(
+    label: String,
+    before: Double,
+    after: Double,
+    delta: Double,
+    unit: String = "",
+    isInverted: Boolean = false
+) {
+    val isPositive = if (isInverted) delta < 0 else delta > 0
+    val deltaColor = if (isPositive) Color(0xFF10B981) else if (delta == 0.0) Color(0xFF3B82F6) else Color(0xFFEF4444)
+    val prefix = if (delta > 0) "+" else ""
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "${String.format(java.util.Locale.US, "%.0f", before)}$unit → ${String.format(java.util.Locale.US, "%.0f", after)}$unit",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "$prefix${String.format(java.util.Locale.US, "%.0f", delta)}$unit",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = deltaColor
+            )
+        }
+    }
+}

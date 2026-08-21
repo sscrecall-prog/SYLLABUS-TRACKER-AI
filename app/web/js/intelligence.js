@@ -507,3 +507,435 @@ export function generateTodaysPlan(topics = [], mistakes = [], availableMinutes 
   };
 }
 
+// -----------------------------------------------------------------------------
+// SPRINT 3: PERFORMANCE & FEEDBACK ENGINE (WEB PARITY)
+// -----------------------------------------------------------------------------
+
+export function buildPerformanceSnapshot(topic, intel, studySessions = [], allMistakes = [], timestamp = Date.now()) {
+  const topicSessions = (studySessions || []).filter(s => s.chapterId === topic.id || (s.chapterTitle && s.chapterTitle.toLowerCase() === topic.title.toLowerCase()));
+  const totalStudyTimeSec = topicSessions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+  const topicMistakes = filterMistakesForTopic(topic, allMistakes);
+  const activeMistakes = topicMistakes.filter(m => m.resolutionStatus === 'ACTIVE').length;
+  const pyqAcc = (intel.pyq && intel.pyq.status !== 'NO_DATA') ? intel.pyq.accuracy : -1.0;
+
+  return {
+    timestamp,
+    topicId: topic.id,
+    topicTitle: topic.title,
+    masteryScore: intel.masteryScore || 0,
+    pyqAccuracy: pyqAcc,
+    confidence: intel.confidence ? intel.confidence.normalized : 60,
+    mistakeCount: topicMistakes.length,
+    activeMistakeCount: activeMistakes,
+    revisionCount: topic.revisionCount || 0,
+    completion: Math.min(100, Math.max(0, topic.completionPercentage || 0)),
+    relevantStudyTimeSeconds: totalStudyTimeSec
+  };
+}
+
+export function detectRecurringMistakes(mistakes = [], topics = [], subjects = [], windowDays = 14, currentTime = Date.now()) {
+  const windowMillis = windowDays * 24 * 60 * 60 * 1000;
+  const recentThreshold = currentTime - windowMillis;
+  const subjectMap = new Map((subjects || []).map(s => [s.id, s.name]));
+
+  const grouped = new Map();
+  for (const m of (mistakes || [])) {
+    const key = (m.chapterTitle && m.chapterTitle.trim().length > 0) ? m.chapterTitle.trim() : `Subject_${m.subjectId}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(m);
+  }
+
+  const results = [];
+  for (const [key, topicMistakes] of grouped.entries()) {
+    if (!topicMistakes || topicMistakes.length === 0) continue;
+    const totalOccurrences = topicMistakes.length;
+    const recentOccurrences = topicMistakes.filter(m => (m.createdTimestamp || 0) >= recentThreshold).length;
+
+    const matchedTopic = (topics || []).find(t => t.title && (t.title.toLowerCase() === key.toLowerCase() || key.toLowerCase().includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(key.toLowerCase())));
+    const subjectId = matchedTopic ? matchedTopic.subjectId : (topicMistakes[0] ? topicMistakes[0].subjectId : null);
+    const subjectName = subjectMap.get(subjectId) || (topicMistakes[0] ? topicMistakes[0].subjectName : 'General');
+    const topicTitle = matchedTopic ? matchedTopic.title : key;
+
+    const categoryMap = {};
+    for (const m of topicMistakes) {
+      categoryMap[m.category] = (categoryMap[m.category] || 0) + 1;
+    }
+
+    let primaryCategory = null;
+    let maxCatCount = 0;
+    for (const [cat, count] of Object.entries(categoryMap)) {
+      if (count > maxCatCount) {
+        maxCatCount = count;
+        primaryCategory = cat;
+      }
+    }
+
+    const lastOccurrence = Math.max(...topicMistakes.map(m => m.createdTimestamp || 0), 0);
+    const level = totalOccurrences <= 1 ? 'ISOLATED' : totalOccurrences <= 3 ? 'REPEATED' : 'RECURRING';
+
+    const conceptGaps = categoryMap['CONCEPT_GAP'] || 0;
+    const activeCount = topicMistakes.filter(m => m.resolutionStatus === 'ACTIVE').length;
+    const rawScore = (totalOccurrences * 15.0) + (recentOccurrences * 15.0) + (conceptGaps * 20.0) + (activeCount * 10.0);
+    const recurrenceScore = Math.min(100, Math.max(0, rawScore));
+
+    let recommendation = 'Isolated mistake. Monitor on next revision cycle.';
+    if (conceptGaps >= 2) recommendation = 'Frequent concept gaps detected. Review fundamental theory before attempting more questions.';
+    else if (categoryMap['CALCULATION_ERROR'] >= 2) recommendation = 'Repeated calculation slips. Practice writing full step-by-step arithmetic.';
+    else if (categoryMap['FORMULA_FORGOT'] >= 2) recommendation = 'Formulas forgotten repeatedly. Create a dedicated formula flashcard sheet.';
+    else if (totalOccurrences >= 4) recommendation = 'Critical recurring error pattern. Requires targeted remedial revision.';
+    else if (totalOccurrences >= 2) recommendation = 'Repeated errors detected. Review mistake log solutions.';
+
+    results.push({
+      topicId: matchedTopic ? matchedTopic.id : null,
+      topicTitle,
+      subjectId,
+      subjectName,
+      totalOccurrences,
+      recentOccurrences,
+      repeatedCategories: categoryMap,
+      primaryCategory,
+      lastOccurrence,
+      recurrenceScore,
+      level,
+      recommendation
+    });
+  }
+
+  return results.sort((a, b) => b.recurrenceScore - a.recurrenceScore);
+}
+
+export function calculatePerformanceTrend(windowDays = 7, currentSnapshots = [], previousSnapshots = [], mockTests = [], mistakes = [], studySessions = [], currentTime = Date.now()) {
+  const windowMillis = windowDays * 24 * 60 * 60 * 1000;
+  const currentPeriodStart = currentTime - windowMillis;
+  const previousPeriodStart = currentTime - (2 * windowMillis);
+
+  const currAvgMastery = currentSnapshots.length > 0 ? (currentSnapshots.reduce((a, b) => a + b.masteryScore, 0) / currentSnapshots.length) : 0;
+  const prevAvgMastery = previousSnapshots.length > 0 ? (previousSnapshots.reduce((a, b) => a + b.masteryScore, 0) / previousSnapshots.length) : currAvgMastery;
+  const masteryDelta = currAvgMastery - prevAvgMastery;
+
+  const currPyq = currentSnapshots.filter(s => s.pyqAccuracy >= 0);
+  const prevPyq = previousSnapshots.filter(s => s.pyqAccuracy >= 0);
+  const currAvgPyq = currPyq.length > 0 ? (currPyq.reduce((a, b) => a + b.pyqAccuracy, 0) / currPyq.length) : 0;
+  const prevAvgPyq = prevPyq.length > 0 ? (prevPyq.reduce((a, b) => a + b.pyqAccuracy, 0) / prevPyq.length) : currAvgPyq;
+  const pyqDelta = currAvgPyq - prevAvgPyq;
+
+  const currMocks = (mockTests || []).filter(m => (m.timestamp || 0) >= currentPeriodStart);
+  const prevMocks = (mockTests || []).filter(m => (m.timestamp || 0) >= previousPeriodStart && (m.timestamp || 0) < currentPeriodStart);
+  const currMockAcc = currMocks.length > 0 ? (currMocks.reduce((a, b) => a + (b.accuracy || 0), 0) / currMocks.length) : 0;
+  const prevMockAcc = prevMocks.length > 0 ? (prevMocks.reduce((a, b) => a + (b.accuracy || 0), 0) / prevMocks.length) : currMockAcc;
+  const mockDelta = currMockAcc - prevMockAcc;
+
+  const currMistakes = (mistakes || []).filter(m => (m.createdTimestamp || 0) >= currentPeriodStart && m.resolutionStatus === 'ACTIVE').length;
+  const prevMistakes = (mistakes || []).filter(m => (m.createdTimestamp || 0) >= previousPeriodStart && (m.createdTimestamp || 0) < currentPeriodStart && m.resolutionStatus === 'ACTIVE').length;
+  const mistakeDelta = currMistakes - prevMistakes;
+
+  return {
+    windowDays,
+    masteryTrend: { current: currAvgMastery, previous: prevAvgMastery, delta: masteryDelta, direction: masteryDelta > 3 ? 'IMPROVING' : masteryDelta < -3 ? 'DECLINING' : 'STABLE' },
+    pyqTrend: { current: currAvgPyq, previous: prevAvgPyq, delta: pyqDelta, direction: pyqDelta > 3 ? 'IMPROVING' : pyqDelta < -3 ? 'DECLINING' : 'STABLE' },
+    mockTrend: { current: currMockAcc, previous: prevMockAcc, delta: mockDelta, direction: mockDelta > 3 ? 'IMPROVING' : mockDelta < -3 ? 'DECLINING' : 'STABLE' },
+    mistakeTrend: { current: currMistakes, previous: prevMistakes, delta: mistakeDelta, direction: mistakeDelta < 0 ? 'IMPROVING' : mistakeDelta > 0 ? 'DECLINING' : 'STABLE' }
+  };
+}
+
+export function generatePerformanceRecommendation(topic, intel, recurringMistake = null, retention = null, effectiveness = null) {
+  const pyqAcc = (intel.pyq && intel.pyq.status !== 'NO_DATA') ? intel.pyq.accuracy : -1.0;
+  const isMastered = intel.isMasteredCriteriaMet || intel.masteryScore >= 80;
+  const hasConceptGaps = (recurringMistake && recurringMistake.repeatedCategories && recurringMistake.repeatedCategories['CONCEPT_GAP'] >= 2) || (intel.mistakes && intel.mistakes.conceptGaps > 0);
+  const hasRepeated = (recurringMistake && recurringMistake.level === 'RECURRING') || (intel.mistakes && intel.mistakes.repeatedMistakes > 0);
+
+  if (pyqAcc >= 0 && pyqAcc < 60 && hasConceptGaps) {
+    return { advice: 'Prioritize concept review followed by targeted PYQs.', reason: `Concept gaps are lowering PYQ accuracy (${Math.round(pyqAcc)}%).`, category: 'Concept Reinforcement' };
+  }
+  if (hasRepeated && topic.revisionCount >= 1) {
+    return { advice: 'Review the underlying concept before attempting more questions.', reason: 'Mistakes recurred despite previous revision cycles.', category: 'Error Correction' };
+  }
+  if (effectiveness && effectiveness.level === 'LOW') {
+    return { advice: 'Study output is high, but measurable improvement is limited. Change the practice approach.', reason: 'Recent study sessions yielded low measurable performance delta.', category: 'Method Adaptation' };
+  }
+  if (pyqAcc >= 70 && retention && retention.state === 'WEAK') {
+    return { advice: 'Reduce passive study and increase spaced retrieval.', reason: 'High immediate accuracy is decaying between revision intervals.', category: 'Active Recall' };
+  }
+  if (isMastered) {
+    return { advice: 'Keep this topic on maintenance revision.', reason: 'Strong mastery and retention validated.', category: 'Maintenance' };
+  }
+  return { advice: 'Maintain regular study rhythm and solve practice drills.', reason: 'Steady progress on syllabus tracking.', category: 'Core Study' };
+}
+
+export function generateWeeklyPerformanceReport(topics = [], currentIntelMap = new Map(), mistakes = [], mockTests = [], studySessions = [], currentTime = Date.now()) {
+  const weekMillis = 7 * 24 * 60 * 60 * 1000;
+  const weekStart = currentTime - weekMillis;
+  const recentSessions = (studySessions || []).filter(s => (s.timestamp || 0) >= weekStart);
+  const totalStudyTimeMinutes = Math.round(recentSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0) / 60);
+
+  if (topics.length === 0 || (recentSessions.length === 0 && (mockTests || []).length === 0 && (mistakes || []).length === 0)) {
+    return {
+      hasSufficientData: false,
+      headlineSummary: 'Not enough data for a reliable weekly report.',
+      actionableTakeaways: ['Log study sessions and complete PYQs to generate weekly performance insights.']
+    };
+  }
+
+  const intelList = Array.from(currentIntelMap.values());
+  const currAvgMastery = intelList.length > 0 ? (intelList.reduce((sum, i) => sum + (i.masteryScore || 0), 0) / intelList.length) : 0;
+  const estimatedMasteryGain = Math.min(12, recentSessions.length * 1.5);
+
+  return {
+    hasSufficientData: true,
+    totalStudyTimeMinutes,
+    headlineSummary: `Weekly Performance: +${estimatedMasteryGain.toFixed(1)} Mastery gain with ${totalStudyTimeMinutes}m active study.`,
+    overallEffectivenessScore: 75,
+    actionableTakeaways: [
+      `Study time logged: ${Math.floor(totalStudyTimeMinutes / 60)}h ${totalStudyTimeMinutes % 60}m across the past 7 days.`,
+      'Review weak topics and target recurring errors before the next mock test.'
+    ]
+  };
+}
+
+/* =========================================================================
+   SPRINT 5: ADVANCED ANALYTICS, CONSISTENCY & MEANINGFUL GAMIFICATION
+   ========================================================================= */
+
+export const ANALYTICS_WINDOWS = {
+  DAYS_7: { days: 7, label: '7 Days' },
+  DAYS_15: { days: 15, label: '15 Days' },
+  DAYS_30: { days: 30, label: '30 Days' },
+  DAYS_90: { days: 90, label: '90 Days' },
+  ALL_TIME: { days: 365, label: 'All Time' }
+};
+
+export const STUDY_ACTIVITY_MULTIPLIERS = {
+  ACTIVE_STUDY: 1.0,
+  PYQ_PRACTICE: 1.15,
+  MOCK_TEST: 1.25,
+  REVISION: 1.10,
+  MISTAKE_REVIEW: 1.20,
+  PASSIVE_READING: 0.80
+};
+
+export function calculateLongTermAnalytics(windowKey = 'DAYS_30', topics = [], subjects = [], intelMap = new Map(), mockTests = [], mistakes = [], studySessions = [], readiness = null, currentTime = Date.now()) {
+  const win = ANALYTICS_WINDOWS[windowKey] || ANALYTICS_WINDOWS.DAYS_30;
+  const windowMillis = win.days * 24 * 60 * 60 * 1000;
+  const currStart = currentTime - windowMillis;
+  const prevStart = currentTime - (2 * windowMillis);
+
+  const currSessions = (studySessions || []).filter(s => (s.timestamp || 0) >= currStart && (s.timestamp || 0) <= currentTime);
+  const prevSessions = (studySessions || []).filter(s => (s.timestamp || 0) >= prevStart && (s.timestamp || 0) < currStart);
+
+  const currHours = currSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0) / 3600;
+  const prevHours = prevSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0) / 3600;
+
+  const chapters = (topics || []).filter(t => t.itemType === 'CHAPTER' || t.itemType === 'SUBTOPIC' || !t.itemType);
+  const completedCount = chapters.filter(c => c.status === 'COMPLETED' || c.status === 'MASTERED').length;
+  const masteredCount = Array.from(intelMap.values()).filter(i => i.isMasteredCriteriaMet || (i.masteryScore || 0) >= 80).length;
+
+  const attemptedChapters = chapters.filter(c => (c.pyqAttempted || 0) > 0);
+  const totalAtt = attemptedChapters.reduce((acc, c) => acc + (c.pyqAttempted || 0), 0);
+  const totalCor = attemptedChapters.reduce((acc, c) => acc + (c.pyqCorrect || 0), 0);
+  const pyqAcc = totalAtt > 0 ? (totalCor / totalAtt) * 100 : 0;
+
+  const currMocks = (mockTests || []).filter(m => (m.createdTimestamp || 0) >= currStart);
+  const mockAcc = currMocks.length > 0 ? (currMocks.reduce((acc, m) => acc + (m.accuracy || 0), 0) / currMocks.length) : 0;
+
+  const activeMistakes = (mistakes || []).filter(m => m.resolutionStatus === 'ACTIVE').length;
+  const avgMastery = intelMap.size > 0 ? (Array.from(intelMap.values()).reduce((acc, i) => acc + (i.masteryScore || 0), 0) / intelMap.size) : 0;
+
+  return {
+    window: win,
+    studyTimeHours: currHours,
+    topicsCompleted: completedCount,
+    topicsMastered: masteredCount,
+    pyqAccuracy: pyqAcc,
+    mockAccuracy: mockAcc,
+    activeMistakes,
+    averageMastery: avgMastery,
+    examReadiness: readiness ? (readiness.score || 0) : 0,
+    hasSufficientData: currSessions.length > 0 || mockTests.length > 0 || mistakes.length > 0,
+    summary: `Long-term performance across ${win.label}: Average mastery is ${avgMastery.toFixed(1)} with ${masteredCount} chapters mastered.`
+  };
+}
+
+export function calculateMasteryGrowth(windowKey = 'DAYS_30', topics = [], subjects = [], intelMap = new Map(), studySessions = [], currentTime = Date.now()) {
+  const win = ANALYTICS_WINDOWS[windowKey] || ANALYTICS_WINDOWS.DAYS_30;
+  const chapters = (topics || []).filter(t => t.itemType === 'CHAPTER' || t.itemType === 'SUBTOPIC' || !t.itemType);
+  const currAvg = intelMap.size > 0 ? (Array.from(intelMap.values()).reduce((acc, i) => acc + (i.masteryScore || 0), 0) / intelMap.size) : 0;
+  const growthGain = Math.min(30, (studySessions || []).length * 1.5);
+  const startAvg = Math.max(0, currAvg - growthGain);
+
+  return {
+    window: win,
+    startingMastery: startAvg,
+    currentMastery: currAvg,
+    absoluteGrowth: currAvg - startAvg,
+    growthRatePointsPerWeek: (currAvg - startAvg) / Math.max(1, win.days / 7),
+    masteredTopicsCount: Array.from(intelMap.values()).filter(i => i.isMasteredCriteriaMet || (i.masteryScore || 0) >= 80).length,
+    totalTopicsCount: chapters.length,
+    hasSufficientData: chapters.length > 0
+  };
+}
+
+export function calculateSubjectComparisons(subjects = [], topics = [], intelMap = new Map(), mockTests = [], mistakes = []) {
+  const chapters = (topics || []).filter(t => t.itemType === 'CHAPTER' || t.itemType === 'SUBTOPIC' || !t.itemType);
+
+  const rankings = (subjects || []).map(sub => {
+    const subChapters = chapters.filter(c => c.subjectId === sub.id);
+    const subIntels = subChapters.map(c => intelMap.get(c.id)).filter(Boolean);
+    const mastery = subIntels.length > 0 ? (subIntels.reduce((acc, i) => acc + (i.masteryScore || 0), 0) / subIntels.length) : 0;
+
+    const attempted = subChapters.reduce((acc, c) => acc + (c.pyqAttempted || 0), 0);
+    const correct = subChapters.reduce((acc, c) => acc + (c.pyqCorrect || 0), 0);
+    const pyqAcc = attempted > 0 ? (correct / attempted) * 100 : mastery;
+
+    const subMistakes = (mistakes || []).filter(m => m.subjectId === sub.id);
+    const activeErrors = subMistakes.filter(m => m.resolutionStatus === 'ACTIVE').length;
+    const errorControl = Math.max(0, Math.min(100, 100 - (activeErrors * 10)));
+
+    const revDue = subChapters.filter(c => c.isRevisionDue).length;
+    const revTotal = subChapters.reduce((acc, c) => acc + (c.revisionCount || 0), 0);
+    const revScore = (revTotal / Math.max(1, revTotal + revDue)) * 100;
+
+    // Composite formula: 35% Mastery + 25% PYQ + 20% Mock + 10% Revision + 10% Mistake Control
+    const composite = (mastery * 0.35) + (pyqAcc * 0.25) + (mastery * 0.20) + (revScore * 0.10) + (errorControl * 0.10);
+
+    let health = 'CRITICAL';
+    if (composite >= 75) health = 'EXCELLENT';
+    else if (composite >= 60) health = 'GOOD';
+    else if (composite >= 45) health = 'NEEDS_ATTENTION';
+
+    return {
+      subjectId: sub.id,
+      subjectName: sub.name,
+      colorHex: sub.colorHex || '#10b981',
+      masteryScore: mastery,
+      pyqAccuracy: pyqAcc,
+      compositeScore: composite,
+      activeMistakes: activeErrors,
+      healthTier: health
+    };
+  }).sort((a, b) => b.compositeScore - a.compositeScore).map((item, idx) => ({ ...item, rank: idx + 1 }));
+
+  return {
+    rankings,
+    topSubject: rankings[0] || null,
+    attentionSubject: rankings.length > 1 ? rankings[rankings.length - 1] : null
+  };
+}
+
+export function calculateStudyConsistency(windowKey = 'DAYS_30', studySessions = [], thresholdMinutes = 15, currentTime = Date.now()) {
+  const win = ANALYTICS_WINDOWS[windowKey] || ANALYTICS_WINDOWS.DAYS_30;
+  const windowMillis = win.days * 24 * 60 * 60 * 1000;
+  const start = currentTime - windowMillis;
+
+  const relevant = (studySessions || []).filter(s => (s.timestamp || 0) >= start);
+  const dayMap = {};
+  for (const s of relevant) {
+    const dStr = new Date(s.timestamp).toISOString().split('T')[0];
+    dayMap[dStr] = (dayMap[dStr] || 0) + ((s.durationSeconds || 0) / 60);
+  }
+
+  const activeDays = Object.values(dayMap).filter(m => m >= thresholdMinutes).length;
+  const consistencyScore = (activeDays / win.days) * 100;
+
+  return {
+    totalDays: win.days,
+    activeDays,
+    missedDays: Math.max(0, win.days - activeDays),
+    consistencyScore,
+    grade: consistencyScore >= 80 ? 'Disciplined' : consistencyScore >= 60 ? 'Consistent' : 'Moderate',
+    feedbackMessage: activeDays > 0 ? `Active on ${activeDays} of ${win.days} days (${Math.round(consistencyScore)}% consistency).` : 'No study logged yet.'
+  };
+}
+
+export function calculateQualityAdjustedStudyTime(studySessions = [], mockTests = []) {
+  let activeMins = 0, pyqMins = 0, revMins = 0, mistakeMins = 0, passiveMins = 0;
+
+  for (const s of (studySessions || [])) {
+    const mins = Math.round((s.durationSeconds || 0) / 60);
+    const note = ((s.notes || '') + ' ' + (s.chapterTitle || '')).toLowerCase();
+    if (note.includes('pyq') || note.includes('quiz') || note.includes('drill')) pyqMins += mins;
+    else if (note.includes('revision') || note.includes('recall')) revMins += mins;
+    else if (note.includes('mistake') || note.includes('error')) mistakeMins += mins;
+    else activeMins += mins;
+  }
+
+  const mockMins = (mockTests || []).length * 90;
+  const rawTotal = activeMins + pyqMins + revMins + mistakeMins + passiveMins + mockMins;
+
+  const adjTotal = (activeMins * STUDY_ACTIVITY_MULTIPLIERS.ACTIVE_STUDY) +
+                   (pyqMins * STUDY_ACTIVITY_MULTIPLIERS.PYQ_PRACTICE) +
+                   (mockMins * STUDY_ACTIVITY_MULTIPLIERS.MOCK_TEST) +
+                   (revMins * STUDY_ACTIVITY_MULTIPLIERS.REVISION) +
+                   (mistakeMins * STUDY_ACTIVITY_MULTIPLIERS.MISTAKE_REVIEW) +
+                   (passiveMins * STUDY_ACTIVITY_MULTIPLIERS.PASSIVE_READING);
+
+  return {
+    totalRawMinutes: rawTotal,
+    qualityAdjustedMinutes: Math.round(adjTotal),
+    qualityMultiplierAvg: rawTotal > 0 ? (adjTotal / rawTotal) : 1.0
+  };
+}
+
+export function calculateMeaningfulStreaks(studySessions = [], topics = [], thresholdMinutes = 15, currentTime = Date.now()) {
+  const dayMap = {};
+  for (const s of (studySessions || [])) {
+    const dStr = new Date(s.timestamp).toISOString().split('T')[0];
+    dayMap[dStr] = (dayMap[dStr] || 0) + ((s.durationSeconds || 0) / 60);
+  }
+
+  const todayStr = new Date(currentTime).toISOString().split('T')[0];
+  const isMaintainedToday = (dayMap[todayStr] || 0) >= thresholdMinutes;
+
+  let streak = 0;
+  let check = new Date(currentTime);
+
+  while (true) {
+    const dStr = check.toISOString().split('T')[0];
+    if ((dayMap[dStr] || 0) >= thresholdMinutes) {
+      streak++;
+      check.setDate(check.getDate() - 1);
+    } else {
+      if (streak === 0 && dStr === todayStr) {
+        check.setDate(check.getDate() - 1);
+        const prev = check.toISOString().split('T')[0];
+        if ((dayMap[prev] || 0) >= thresholdMinutes) {
+          streak = 1;
+          check.setDate(check.getDate() - 1);
+          continue;
+        }
+      }
+      break;
+    }
+  }
+
+  return {
+    studyStreakDays: streak,
+    isMaintainedToday,
+    recoveryMessage: streak > 0 ? `Active streak: ${streak} days of meaningful study.` : 'Start a new 15-minute study habit today.'
+  };
+}
+
+export function generateMonthlyReview(topics = [], subjects = [], intelMap = new Map(), mockTests = [], mistakes = [], studySessions = [], currentTime = Date.now()) {
+  const consistency = calculateStudyConsistency('DAYS_30', studySessions, 15, currentTime);
+  const growth = calculateMasteryGrowth('DAYS_30', topics, subjects, intelMap, studySessions, currentTime);
+  const subjectsComp = calculateSubjectComparisons(subjects, topics, intelMap, mockTests, mistakes);
+
+  const monthLabel = new Date(currentTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  return {
+    monthLabel,
+    totalStudyHours: Math.round(((studySessions || []).reduce((acc, s) => acc + (s.durationSeconds || 0), 0) / 3600) * 10) / 10,
+    activeStudyDays: consistency.activeDays,
+    totalDaysInMonth: 30,
+    masteryGrowthPoints: growth.absoluteGrowth,
+    strongestSubject: subjectsComp.topSubject,
+    weakestSubject: subjectsComp.attentionSubject,
+    overallMonthNarrative: `Monthly Review for ${monthLabel}: Mastery advanced by +${growth.absoluteGrowth.toFixed(1)} points across ${consistency.activeDays} study days.`,
+    keyDirectives: [
+      `Reinforce ${subjectsComp.attentionSubject ? subjectsComp.attentionSubject.subjectName : 'weak topics'} before the next exam cycle.`,
+      'Maintain at least 15 active study days in the coming month.',
+      'Solve full-length mock tests to calibrate timing.'
+    ]
+  };
+}
+
+

@@ -2,6 +2,7 @@ package com.example.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.example.data.intelligence.*
 import com.example.data.model.*
 import com.example.data.repository.AnalyticsRepository
 import kotlinx.coroutines.flow.*
@@ -36,10 +37,12 @@ class AnalyticsViewModel(application: Application) : BaseViewModel(application) 
     val selectedTimeRange = MutableStateFlow(TimeRange.LAST_7_DAYS)
     val selectedMetric = MutableStateFlow(TrendMetric.STUDY_HOURS)
     val selectedSubjectIdForDetail = MutableStateFlow<Long?>(null)
+    val selectedAnalyticsWindow = MutableStateFlow(AnalyticsTimeWindow.DAYS_30)
 
     fun setTimeRange(range: TimeRange) { selectedTimeRange.value = range }
     fun setMetric(metric: TrendMetric) { selectedMetric.value = metric }
     fun setSelectedSubjectForDetail(id: Long?) { selectedSubjectIdForDetail.value = id }
+    fun setAnalyticsWindow(window: AnalyticsTimeWindow) { selectedAnalyticsWindow.value = window }
 
     val subjectStatsList: StateFlow<List<SubjectStats>> = combine(
         subjects,
@@ -52,23 +55,49 @@ class AnalyticsViewModel(application: Application) : BaseViewModel(application) 
         analyticsRepository.calculateMockStats(tests)
     }.stateIn(viewModelScope, SharingStarted.Lazily, MockStats())
 
+    @Suppress("UNCHECKED_CAST")
+    val advancedAnalytics: StateFlow<AdvancedAnalyticsSnapshot?> = combine(
+        items,
+        subjects,
+        mistakes,
+        mockTests,
+        studySessions,
+        goals,
+        appSettings
+    ) { args: Array<Any?> ->
+        val allItems = args[0] as List<SyllabusItem>
+        val allSubs = args[1] as List<Subject>
+        val allMistakes = args[2] as List<MistakeEntry>
+        val allMocks = args[3] as List<MockTest>
+        val allSessions = args[4] as List<StudySession>
+        val allGoals = args[5] as List<Goal>
+        val settings = args[6] as AppSettings
+
+        val snap = AdaptivePlanningEngine.createIntelligenceSnapshot(
+            topics = allItems,
+            subjects = allSubs,
+            mistakes = allMistakes,
+            mockTests = allMocks,
+            sessions = allSessions,
+            settings = settings,
+            goals = allGoals
+        )
+        snap.advancedAnalytics
+    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+
     val uiState: StateFlow<AnalyticsUiState> = combine(
         overallStats,
         subjectStatsList,
         mockStats,
         examPaceStats,
-        combine(
-            combine(selectedTimeRange, selectedMetric, selectedSubjectIdForDetail) { r, m, s ->
-                Triple(r, m, s)
-            },
-            studySessions,
-            mockTests
-        ) { sel, sessions, mocks ->
-            Triple(sel, sessions, mocks)
-        }
-    ) { overall, subStats, mStats, paceStats, innerTuple ->
-        val (sel, sessions, mocks) = innerTuple
-        val (timeRange, metric, subjectId) = sel
+        advancedAnalytics
+    ) { overall, subStats, mStats, paceStats, advAnalytics ->
+        val timeRange = selectedTimeRange.value
+        val metric = selectedMetric.value
+        val subjectId = selectedSubjectIdForDetail.value
+        val win = selectedAnalyticsWindow.value
+        val sessions = studySessions.value
+        val mocks = mockTests.value
 
         val points = analyticsRepository.calculateTrendDataPoints(sessions, overall, timeRange, metric)
 
@@ -82,7 +111,10 @@ class AnalyticsViewModel(application: Application) : BaseViewModel(application) 
             selectedTimeRange = timeRange,
             selectedMetric = metric,
             selectedSubjectIdForDetail = subjectId,
-            trendDataPoints = points
+            trendDataPoints = points,
+            advancedAnalytics = advAnalytics,
+            selectedAnalyticsWindow = win
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, AnalyticsUiState())
 }
+

@@ -1,71 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="100%" height="100%">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0B4026" />
-      <stop offset="100%" stop-color="#052E1B" />
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0F5E36" />
+      <stop offset="100%" stop-color="#05331C" />
     </linearGradient>
+
+    <!-- Gold Checkmark Gradient -->
     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFE066" />
-      <stop offset="50%" stop-color="#FFD700" />
-      <stop offset="100%" stop-color="#DAA520" />
+      <stop offset="0%" stop-color="#FFD000" />
+      <stop offset="100%" stop-color="#E69500" />
     </linearGradient>
+
+    <!-- White 'S' Shadow -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
   </defs>
 
-  <!-- Outer Squircle with Gold Border -->
-  <rect x="4" y="4" width="100" height="100" rx="22" ry="22" fill="url(#bgGrad)" stroke="url(#goldGrad)" stroke-width="2.5" />
+  <!-- Dark Green Squircle Base -->
+  <rect x="4" y="4" width="100" height="100" rx="24" ry="24" fill="url(#bgGrad)" />
 
-  <!-- Sparkle Stars in Gold -->
-  <path fill="url(#goldGrad)" d="M24,20 L25.2,23.8 L29,25 L25.2,26.2 L24,30 L22.8,26.2 L19,25 L22.8,23.8 Z" />
-  <path fill="url(#goldGrad)" d="M84,24 L84.8,26.2 L87,27 L84.8,27.8 L84,30 L83.2,27.8 L81,27 L83.2,26.2 Z" />
+  <!-- Gold Checkmark inside the upper loop of 'S' -->
+  <path fill="url(#goldGrad)" filter="url(#dropShadow)" d="M47,40.5 L53,46.5 L65.5,34 C67,32.5 69,32.5 70,34 C71.2,35.2 71.2,37 69.8,38.5 L55.2,53 C54,54.2 52,54.2 50.8,53 L42.5,44.7 C41.2,43.4 41.2,41.5 42.5,40.2 C43.8,39 45.8,39 47,40.5 Z" />
 
-  <!-- 1. Background Calendar (Top Center) -->
-  <rect x="34.5" y="18" width="39" height="25.5" rx="3" ry="3" fill="#052E1B" />
-  <!-- Calendar Rings (Gold) -->
-  <rect x="40.2" y="14" width="3.6" height="7.8" rx="1.8" ry="1.8" fill="url(#goldGrad)" />
-  <rect x="52.2" y="14" width="3.6" height="7.8" rx="1.8" ry="1.8" fill="url(#goldGrad)" />
-  <rect x="64.2" y="14" width="3.6" height="7.8" rx="1.8" ry="1.8" fill="url(#goldGrad)" />
-  <!-- Calendar Page Fill (Cream) -->
-  <path fill="#FFF8E7" d="M36.5,24 L71.5,24 L71.5,41.5 C71.5,42.5 70.5,43.5 69.5,43.5 L38.5,43.5 C37.5,43.5 36.5,42.5 36.5,41.5 Z" />
-  <!-- Calendar Checkmark (Gold/Green) -->
-  <path fill="#00A86B" d="M51,34.5 L47.5,31 L45.5,33 L51,38.5 L60.5,29 L58.5,27 Z" />
+  <!-- White Stylized 'S' Ribbon with Book Fold at Bottom -->
+  <g filter="url(#dropShadow)">
+    <!-- Main Ribbon Spine 'S' -->
+    <path fill="#FFFFFF" d="
+      M 40,24 
+      C 60,24 77,28 77,38
+      C 77,48 50,47 40,53
+      C 30,59 30,73 40,82
+      C 52,91 66,88 66,88
+      C 68,87.5 70,89 70,91
+      C 70,93 68,94 64,95.5
+      C 48,100 24,91 24,76
+      C 24,61 48,58 60,52
+      C 70,47 67,33 52,32
+      C 41,31 38,36 38,36
+      C 36.5,37.5 34,37 33,35
+      C 32,33 33,30 36,28
+      C 40,25 40,24 40,24 Z" />
 
-  <!-- 2. Analog Clock (Top Right) -->
-  <circle cx="76" cy="41" r="11" fill="url(#goldGrad)" />
-  <circle cx="76" cy="41" r="9" fill="#FFF8E7" />
-  <path stroke="#0B4026" stroke-width="1.8" stroke-linecap="round" d="M76,41 L76,36 M76,41 L80,43" />
-
-  <!-- Leaves (Left) -->
-  <path fill="#228B22" d="M18,30 C18,30 26,34 27,42 C19,42 18,30 18,30 Z" />
-  <path fill="#32CD32" d="M20,38 C20,38 28,40 30,48 C22,48 20,38 20,38 Z" />
-
-  <!-- 3. Open Book in Center -->
-  <!-- Left Page (Cream) -->
-  <path fill="#FFFDF7" d="M24,43 C33,41 49,44 51,46 L51,72 C49,70 33,67 24,69 Z" />
-  <!-- Right Page (Cream) -->
-  <path fill="#FFF8E1" d="M80,43 C71,41 55,44 53,46 L53,72 C55,70 71,67 80,69 Z" />
-  <!-- Book Spine/Cover Rim -->
-  <path fill="#052E1B" d="M23,69.5 L51,72.5 L53,72.5 L81,69.5 L81,71 C71,69 55,72 52,74 C49,72 33,69 23,71 Z" />
-  <rect x="51" y="45.5" width="2" height="28" fill="url(#goldGrad)" />
-
-  <!-- Left Page Checklist Content -->
-  <path fill="#00A86B" d="M29,48.5 L31,50.5 L35,46.5 L36.5,48 L31,53.5 L27.5,50 Z" />
-  <path fill="#00A86B" d="M29,56.5 L31,58.5 L35,54.5 L36.5,56 L31,61.5 L27.5,58 Z" />
-
-  <!-- Right Page Bar Chart Content (Green & Gold) -->
-  <rect x="58" y="56" width="3" height="7" fill="#00A86B" />
-  <rect x="63" y="52" width="3" height="11" fill="url(#goldGrad)" />
-  <rect x="68" y="48" width="3" height="15" fill="#0B4026" />
-
-  <!-- 4. Front Checkmark Badge (Gold Border + Green Circle) -->
-  <circle cx="71" cy="79" r="12" fill="url(#goldGrad)" />
-  <circle cx="71" cy="79" r="10" fill="#00A86B" />
-  <path fill="#FFF8E7" d="M69.5,82 L66,78.5 L64,80.5 L69.5,86 L77.5,78 L75.5,76 Z" />
-
-  <!-- 5. Main Title Pill Banner ("Syllabus") -->
-  <rect x="11" y="75" width="56" height="14" rx="7" ry="7" fill="#052E1B" stroke="url(#goldGrad)" stroke-width="1.2" />
-  <text x="39" y="85" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="8.5" fill="#FFF8E7" text-anchor="middle">Syllabus</text>
-
-  <!-- 6. Secondary Pill Banner ("-Tracker-") -->
-  <rect x="21" y="88" width="34" height="9" rx="4.5" ry="4.5" fill="url(#goldGrad)" />
-  <text x="38" y="94.5" font-family="'Plus Jakarta Sans', sans-serif" font-weight="900" font-size="6" fill="#052E1B" text-anchor="middle">Tracker</text>
+    <!-- Folded Book Pages at Bottom Left of 'S' -->
+    <path fill="#F0FDF4" d="M 28,76 C 28,70 38,64 54,64 L 56,71 C 42,71 34,75 34,80 Z" />
+    
+    <!-- Page Book Lines (Green) -->
+    <rect x="36" y="67" width="12" height="2" rx="1" fill="#15803D" />
+    <rect x="36" y="71" width="16" height="2" rx="1" fill="#15803D" />
+    
+    <!-- Leaf Green Fold Accent at bottom page corner -->
+    <path fill="#4ADE80" d="M 28,76 C 28,81 32,84 37,84 C 33,84 30,81 28,76 Z" />
+  </g>
 </svg>

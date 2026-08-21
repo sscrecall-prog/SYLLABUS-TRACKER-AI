@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer Squircle with Gold Border -->
+    <path
+        android:fillColor="#0B4026"
+        android:pathData="M18,4 L90,4 C97.7,4 104,10.3 104,18 L104,90 C104,97.7 97.7,104 90,104 L18,104 C10.3,104 4,97.7 4,90 L4,18 C4,10.3 10.3,4 18,4 Z" />
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M18,4 L90,4 C97.7,4 104,10.3 104,18 L104,90 C104,97.7 97.7,104 90,104 L18,104 C10.3,104 4,97.7 4,90 L4,18 C4,10.3 10.3,4 18,4 Z" />
+
+    <!-- Sparkle Stars in Gold -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M24,20 L25.2,23.8 L29,25 L25.2,26.2 L24,30 L22.8,26.2 L19,25 L22.8,23.8 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M84,24 L84.8,26.2 L87,27 L84.8,27.8 L84,30 L83.2,27.8 L81,27 L83.2,26.2 Z" />
+
+    <!-- 1. Background Calendar (Top Center) -->
+    <path
+        android:fillColor="#052E1B"
+        android:pathData="M38,18 L70,18 C72,18 73.5,19.5 73.5,21.5 L73.5,40 C73.5,42 72,43.5 70,43.5 L38,43.5 C36,43.5 34.5,42 34.5,40 L34.5,21.5 C34.5,19.5 36,18 38,18 Z" />
+    <!-- Calendar Rings (Gold) -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M42,14 C43,14 43.8,14.8 43.8,15.8 L43.8,20 C43.8,21 43,21.8 42,21.8 C41,21.8 40.2,21 40.2,20 L40.2,15.8 C40.2,14.8 41,14 42,14 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,14 C55,14 55.8,14.8 55.8,15.8 L55.8,20 C55.8,21 55,21.8 54,21.8 C53,21.8 52.2,21 52.2,20 L52.2,15.8 C52.2,14.8 53,14 54,14 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M66,14 C67,14 67.8,14.8 67.8,15.8 L67.8,20 C67.8,21 67,21.8 66,21.8 C65,21.8 64.2,21 64.2,20 L64.2,15.8 C64.2,14.8 65,14 66,14 Z" />
+    <!-- Calendar Page Fill (Cream) -->
+    <path
+        android:fillColor="#FFF8E7"
+        android:pathData="M36.5,24 L71.5,24 L71.5,41.5 C71.5,42.5 70.5,43.5 69.5,43.5 L38.5,43.5 C37.5,43.5 36.5,42.5 36.5,41.5 Z" />
+    <!-- Calendar Checkmark (Gold/Green) -->
+    <path
+        android:fillColor="#00A86B"
+        android:pathData="M51,34.5 L47.5,31 L45.5,33 L51,38.5 L60.5,29 L58.5,27 Z" />
+
+    <!-- 2. Analog Clock (Top Right) -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M76,30 C82,30 87,35 87,41 C87,47 82,52 76,52 C70,52 65,47 65,41 C65,35 70,30 76,30 Z" />
+    <path
+        android:fillColor="#FFF8E7"
+        android:pathData="M76,32 C81,32 85,36 85,41 C85,46 81,50 76,50 C71,50 67,46 67,41 C67,36 71,32 76,32 Z" />
+    <path
+        android:strokeColor="#0B4026"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M76,41 L76,36 M76,41 L80,43" />
+
+    <!-- Leaves (Left) -->
+    <path
+        android:fillColor="#228B22"
+        android:pathData="M18,30 C18,30 26,34 27,42 C19,42 18,30 18,30 Z" />
+    <path
+        android:fillColor="#32CD32"
+        android:pathData="M20,38 C20,38 28,40 30,48 C22,48 20,38 20,38 Z" />
+
+    <!-- 3. Open Book in Center -->
+    <!-- Left Page (Cream) -->
+    <path
+        android:fillColor="#FFFDF7"
+        android:pathData="M24,43 C33,41 49,44 51,46 L51,72 C49,70 33,67 24,69 Z" />
+    <!-- Right Page (Cream) -->
+    <path
+        android:fillColor="#FFF8E1"
+        android:pathData="M80,43 C71,41 55,44 53,46 L53,72 C55,70 71,67 80,69 Z" />
+    <!-- Book Spine/Cover Rim -->
+    <path
+        android:fillColor="#052E1B"
+        android:pathData="M23,69.5 L51,72.5 L53,72.5 L81,69.5 L81,71 C71,69 55,72 52,74 C49,72 33,69 23,71 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M51,45.5 L53,45.5 L53,73.5 L51,73.5 Z" />
+
+    <!-- Left Page Checklist Content -->
+    <path
+        android:fillColor="#00A86B"
+        android:pathData="M29,48.5 L31,50.5 L35,46.5 L36.5,48 L31,53.5 L27.5,50 Z" />
+    <path
+        android:fillColor="#00A86B"
+        android:pathData="M29,56.5 L31,58.5 L35,54.5 L36.5,56 L31,61.5 L27.5,58 Z" />
+
+    <!-- Right Page Bar Chart Content (Green & Gold) -->
+    <path
+        android:fillColor="#00A86B"
+        android:pathData="M58,63 L61,63 L61,56 L58,56 Z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M63,63 L66,63 L66,52 L63,52 Z" />
+    <path
+        android:fillColor="#0B4026"
+        android:pathData="M68,63 L71,63 L71,48 L68,48 Z" />
+
+    <!-- 4. Front Checkmark Badge (Gold Border + Green Circle) -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M71,67 C77.5,67 83,72.5 83,79 C83,85.5 77.5,91 71,91 C64.5,91 59,85.5 59,79 C59,72.5 64.5,67 71,67 Z" />
+    <path
+        android:fillColor="#00A86B"
+        android:pathData="M71,69 C76.5,69 81,73.5 81,79 C81,84.5 76.5,89 71,89 C65.5,89 61,84.5 61,79 C61,73.5 65.5,69 71,69 Z" />
+    <path
+        android:fillColor="#FFF8E7"
+        android:pathData="M69.5,82 L66,78.5 L64,80.5 L69.5,86 L77.5,78 L75.5,76 Z" />
+
+    <!-- 5. Main Title Pill Banner ("Syllabus") -->
+    <path
+        android:fillColor="#052E1B"
+        android:pathData="M18,75 L60,75 C64,75 67,78 67,82 C67,86 64,89 60,89 L18,89 C14,89 11,86 11,82 C11,78 14,75 18,75 Z" />
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M18,75 L60,75 C64,75 67,78 67,82 C67,86 64,89 60,89 L18,89 C14,89 11,86 11,82 C11,78 14,75 18,75 Z" />
+
+    <!-- 6. Secondary Pill Banner ("-Tracker-") -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M26,88 L50,88 C53,88 55,90 55,92.5 C55,95 53,97 50,97 L26,97 C23,97 21,95 21,92.5 C21,90 23,88 26,88 Z" />
+
+</vector>

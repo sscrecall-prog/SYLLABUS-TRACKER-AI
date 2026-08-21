@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.theme.motion.*
@@ -295,16 +297,15 @@ fun MainScreen() {
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(BrandForestGreen),
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.AutoStories,
-                                        contentDescription = null,
-                                        tint = BrandWarmCream,
-                                        modifier = Modifier.size(18.dp)
+                                        painter = painterResource(id = R.drawable.ic_app_logo),
+                                        contentDescription = "Syllabus Tracker Logo",
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))

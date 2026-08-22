@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -282,7 +283,8 @@ fun MainScreen() {
         }
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val isWideScreen = maxWidth >= 600.dp
+            val isWideScreen = maxWidth >= 720.dp
+            val isMediumScreen = maxWidth >= 600.dp && maxWidth < 720.dp
 
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -326,6 +328,35 @@ fun MainScreen() {
                             }
                         },
                         actions = {
+                            // Target Exam pill on Web / Wide Screen
+                            if (isWideScreen && appSettings.targetExam.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = BrandForestGreen.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, BrandForestGreen.copy(alpha = 0.3f)),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Flag,
+                                            contentDescription = null,
+                                            tint = BrandForestGreen,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = appSettings.targetExam,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = BrandForestGreen
+                                        )
+                                    }
+                                }
+                            }
+
                             // User Profile Avatar & Badges shortcut
                             IconButton(
                                 onClick = { mainViewModel.navigateTo(NavDestination.PROFILE) },
@@ -462,7 +493,7 @@ fun MainScreen() {
                     )
                 },
                 bottomBar = {
-                    if (!isWideScreen) {
+                    if (!isWideScreen && !isMediumScreen) {
                         val maxItems = if (maxWidth < 360.dp) 4 else if (maxWidth < 430.dp) 5 else 6
                         AnimatedBottomNavigation(
                             items = navItems,
@@ -522,26 +553,133 @@ fun MainScreen() {
                         .fillMaxSize()
                         .padding(paddingValues)
                 ) {
-                    // Navigation Rail for Tablet / Landscape screens
+                    // Professional Web/Desktop Sidebar & Navigation Rail
                     if (isWideScreen) {
+                        Surface(
+                            modifier = Modifier
+                                .width(220.dp)
+                                .fillMaxHeight(),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "MAIN MENU",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    letterSpacing = 0.5.sp
+                                )
+
+                                val primaryNavs = listOf(
+                                    Triple(NavDestination.DASHBOARD, "Dashboard", Icons.Default.Dashboard),
+                                    Triple(NavDestination.SUBJECTS, "Syllabus & Subjects", Icons.Default.MenuBook),
+                                    Triple(NavDestination.REVISION, "Spaced Revision", Icons.Default.Update),
+                                    Triple(NavDestination.PLANNER, "Daily Planner", Icons.Default.CalendarMonth),
+                                    Triple(NavDestination.MOCK_TESTS, "Mock Tests", Icons.Default.Quiz),
+                                    Triple(NavDestination.MISTAKES, "Error Diary", Icons.Default.BookmarkRemove)
+                                )
+
+                                primaryNavs.forEach { (dest, label, icon) ->
+                                    val isSelected = currentNav == dest
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { mainViewModel.navigateTo(dest) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = label,
+                                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = label,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "INSIGHTS & TOOLS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    letterSpacing = 0.5.sp
+                                )
+
+                                val secondaryNavs = listOf(
+                                    Triple(NavDestination.ANALYTICS, "Analytics & Pace", Icons.Default.Analytics),
+                                    Triple(NavDestination.WEAK_TOPICS, "Weak Chapters", Icons.Default.ReportProblem),
+                                    Triple(NavDestination.PROFILE, "Profile & Badges", Icons.Default.MilitaryTech),
+                                    Triple(NavDestination.TIMER, "Pomodoro Timer", Icons.Default.Timer),
+                                    Triple(NavDestination.CALENDAR, "Study Calendar", Icons.Default.Event),
+                                    Triple(NavDestination.SETTINGS, "Settings & Data", Icons.Default.Settings)
+                                )
+
+                                secondaryNavs.forEach { (dest, label, icon) ->
+                                    val isSelected = currentNav == dest
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { mainViewModel.navigateTo(dest) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = label,
+                                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = label,
+                                                fontSize = 12.5.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if (isMediumScreen) {
                         NavigationRail(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.width(80.dp)
+                            modifier = Modifier.width(72.dp)
                         ) {
                             val navList = listOf(
                                 NavDestination.DASHBOARD,
-                                NavDestination.MISTAKES,
-                                NavDestination.MOCK_TESTS,
                                 NavDestination.SUBJECTS,
-                                NavDestination.SYLLABUS,
                                 NavDestination.REVISION,
                                 NavDestination.PLANNER,
+                                NavDestination.MOCK_TESTS,
+                                NavDestination.MISTAKES,
                                 NavDestination.ANALYTICS,
-                                NavDestination.PROFILE,
-                                NavDestination.WEAK_TOPICS,
-                                NavDestination.GOALS,
                                 NavDestination.TIMER,
-                                NavDestination.CALENDAR,
                                 NavDestination.SETTINGS
                             )
 
@@ -568,56 +706,67 @@ fun MainScreen() {
                                     selected = isSelected,
                                     onClick = { mainViewModel.navigateTo(destination) },
                                     icon = { Icon(icon, contentDescription = destination.label) },
-                                    label = { Text(destination.label, fontSize = 10.sp) }
+                                    label = { Text(destination.label, fontSize = 9.5.sp) }
                                 )
                             }
                         }
                     }
 
                     // Main Content View with Direction-Aware Page Transitions (Smooth Forward / Backward motion)
-                    Box(modifier = Modifier.weight(1f)) {
-                        DirectionalPageTransitionWrapper(
-                            targetState = currentNav,
-                            direction = transitionDirection,
-                            label = "MainScreenTransition"
-                        ) { destination ->
-                            when (destination) {
-                                NavDestination.DASHBOARD -> DashboardScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) },
-                                    onOpenSubject = { mainViewModel.openSubjectDetail(it) }
-                                )
-                                NavDestination.MISTAKES -> MistakeNotebookScreen(
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .widthIn(max = 1100.dp)
+                        ) {
+                            DirectionalPageTransitionWrapper(
+                                targetState = currentNav,
+                                direction = transitionDirection,
+                                label = "MainScreenTransition"
+                            ) { destination ->
+                                when (destination) {
+                                    NavDestination.DASHBOARD -> DashboardScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) },
+                                        onOpenSubject = { mainViewModel.openSubjectDetail(it) }
                                     )
-                                NavDestination.MOCK_TESTS -> MockTestsScreen(
+                                    NavDestination.MISTAKES -> MistakeNotebookScreen(
+                                        )
+                                    NavDestination.MOCK_TESTS -> MockTestsScreen(
+                                        )
+                                    NavDestination.SUBJECTS -> SubjectListScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) },
+                                        onOpenSubject = { mainViewModel.openSubjectDetail(it) }
                                     )
-                                NavDestination.SUBJECTS -> SubjectListScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) },
-                                    onOpenSubject = { mainViewModel.openSubjectDetail(it) }
-                                )
-                                NavDestination.SYLLABUS -> SyllabusScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.REVISION -> RevisionScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.PLANNER -> PlannerScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.ANALYTICS -> AnalyticsScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.PROFILE -> ProfileScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.WEAK_TOPICS -> WeakChaptersScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.GOALS -> GoalsScreen(
-                                    onNavigate = { mainViewModel.navigateTo(it) }
-                                )
-                                NavDestination.TIMER -> TimerScreen()
-                                NavDestination.CALENDAR -> CalendarScreen()
-                                NavDestination.SETTINGS -> SettingsScreen()
+                                    NavDestination.SYLLABUS -> SyllabusScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.REVISION -> RevisionScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.PLANNER -> PlannerScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.ANALYTICS -> AnalyticsScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.PROFILE -> ProfileScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.WEAK_TOPICS -> WeakChaptersScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.GOALS -> GoalsScreen(
+                                        onNavigate = { mainViewModel.navigateTo(it) }
+                                    )
+                                    NavDestination.TIMER -> TimerScreen()
+                                    NavDestination.CALENDAR -> CalendarScreen()
+                                    NavDestination.SETTINGS -> SettingsScreen()
+                                }
                             }
                         }
                     }

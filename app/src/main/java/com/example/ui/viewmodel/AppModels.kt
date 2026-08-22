@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import com.example.data.model.*
 
 enum class NavDestination(val label: String, val iconName: String) {
+    LANDING("Landing Page", "RocketLaunch"),
     DASHBOARD("Home", "Dashboard"),
     SUBJECTS("Subjects", "School"),
     SYLLABUS("Syllabus", "AutoStories"),
@@ -16,6 +17,7 @@ enum class NavDestination(val label: String, val iconName: String) {
     TIMER("Timer", "Timer"),
     CALENDAR("Calendar", "Event"),
     PROFILE("Profile", "MilitaryTech"),
+    UI_VS_UX("UI vs UX", "DesignServices"),
     SETTINGS("Settings", "Settings")
 }
 

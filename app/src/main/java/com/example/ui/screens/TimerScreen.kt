@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +34,6 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.SyllabusItem
 import com.example.data.model.Subject
 import com.example.data.model.TimerMode
-import com.example.data.model.AmbientSoundType
-import com.example.ui.components.AmbientAudioPlayerCard
 import com.example.ui.components.BentoCard
 import com.example.ui.components.GlassCard
 import com.example.ui.components.GradientCard
@@ -58,6 +57,9 @@ fun TimerScreen() {
     val timerViewModel: TimerViewModel = viewModel()
     val syllabusViewModel: SyllabusViewModel = viewModel()
 
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+
     val timerMode by timerViewModel.timerMode.collectAsState()
     val remainingSeconds by timerViewModel.timerRemainingSeconds.collectAsState()
     val totalDurationSeconds by timerViewModel.timerTotalDurationSeconds.collectAsState()
@@ -69,15 +71,8 @@ fun TimerScreen() {
     val items by syllabusViewModel.items.collectAsState()
     val studySessions by syllabusViewModel.studySessions.collectAsState()
     val overallStats by analyticsViewModel.overallStats.collectAsState()
-    val ambientSound by timerViewModel.ambientSound.collectAsState()
-    val isAmbientPlaying by timerViewModel.isAmbientPlaying.collectAsState()
-    val ambientVolume by timerViewModel.ambientVolume.collectAsState()
-    val ambientAutoPlayWithTimer by timerViewModel.ambientAutoPlayWithTimer.collectAsState()
 
     var showSubjectSelector by remember { mutableStateOf(false) }
-    var sessionNotes by remember { mutableStateOf("") }
-    var showCustomTimeDialog by remember { mutableStateOf(false) }
-    var customMinutesInput by remember { mutableStateOf("30") }
 
     val formattedMinutes = remember(remainingSeconds) {
         val mins = remainingSeconds / 60
@@ -102,10 +97,10 @@ fun TimerScreen() {
             try {
                 Color(android.graphics.Color.parseColor(activeSubject!!.colorHex))
             } catch (e: Exception) {
-                BrandForestGreen
+                ElectricBlue
             }
         } else {
-            BrandForestGreen
+            ElectricBlue
         }
     }
 
@@ -136,7 +131,7 @@ fun TimerScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(DarkSurfaceElevated)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -147,7 +142,7 @@ fun TimerScreen() {
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary
+                                if (isSelected) ElectricBlue
                                 else Color.Transparent
                             )
                             .clickable {
@@ -171,7 +166,7 @@ fun TimerScreen() {
                                     TimerMode.CUSTOM -> Icons.Default.Tune
                                 },
                                 contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isSelected) Color(0xFF071B2B) else colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(5.dp))
@@ -179,7 +174,7 @@ fun TimerScreen() {
                                 text = mode.label,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isSelected) Color(0xFF071B2B) else colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -189,7 +184,7 @@ fun TimerScreen() {
 
         // 2. LINKED TARGET SELECTOR CARD (Subject & Chapter)
         item {
-            BentoCard(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("timer_target_card"),
@@ -211,7 +206,7 @@ fun TimerScreen() {
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(activeSubjectColor.copy(alpha = 0.15f)),
+                                .background(activeSubjectColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -228,7 +223,7 @@ fun TimerScreen() {
                             Text(
                                 text = "FOCUS STUDY TARGET",
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = activeSubjectColor,
                                 letterSpacing = 0.5.sp
                             )
@@ -236,14 +231,14 @@ fun TimerScreen() {
                                 text = activeSubject?.name ?: "All Subjects (Free Focus)",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = if (activeChapter != null) "Chapter: ${activeChapter?.title}" else "Tap Change to link chapter",
                                 fontSize = 11.sp,
-                                color = if (activeChapter != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -253,10 +248,14 @@ fun TimerScreen() {
                     FilledTonalButton(
                         onClick = { showSubjectSelector = true },
                         shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = ElectricBlue.copy(alpha = 0.2f),
+                            contentColor = ElectricBlue
+                        ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.testTag("timer_change_target_btn")
                     ) {
-                        Text("Change", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Change", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -264,12 +263,12 @@ fun TimerScreen() {
 
         // 3. MAIN POMODORO CIRCULAR TIMER DIAL & PRESETS
         item {
-            BentoCard(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("pomodoro_dial_card"),
                 shape = RoundedCornerShape(26.dp),
-                accentColor = if (isRunning) BrandTerracotta else activeSubjectColor
+                accentColor = if (isRunning) AlertRed else activeSubjectColor
             ) {
                 Column(
                     modifier = Modifier
@@ -296,7 +295,14 @@ fun TimerScreen() {
                                     label = { Text(label, fontSize = 11.sp, fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = activeSubjectColor.copy(alpha = 0.2f),
-                                        selectedLabelColor = activeSubjectColor
+                                        selectedLabelColor = activeSubjectColor,
+                                        containerColor = if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        labelColor = colorScheme.onSurfaceVariant
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        borderColor = if (isCurrent) activeSubjectColor else if (isDark) DarkGlassBorder else colorScheme.outlineVariant,
+                                        enabled = true,
+                                        selected = isCurrent
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.testTag("preset_${mins}m")
@@ -316,9 +322,9 @@ fun TimerScreen() {
                             progress = progress,
                             size = 230.dp,
                             strokeWidth = 14.dp,
-                            primaryColor = if (isRunning) BrandTerracotta else activeSubjectColor,
-                            secondaryColor = if (isRunning) Color(0xFFFFB300) else StatusCompleted,
-                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            primaryColor = if (isRunning) ElectricBlue else activeSubjectColor,
+                            secondaryColor = if (isRunning) SoftMint else StatusCompleted,
+                            backgroundColor = if (isDark) Color(0xFF1E2838) else colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 // Monospace-style time counter
@@ -328,13 +334,13 @@ fun TimerScreen() {
                                         fontSize = 46.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = colorScheme.onSurface
                                     )
                                     Text(
                                         text = ":",
                                         fontSize = 42.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = ElectricBlue,
                                         modifier = Modifier.padding(bottom = 4.dp)
                                     )
                                     Text(
@@ -342,7 +348,7 @@ fun TimerScreen() {
                                         fontSize = 46.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = colorScheme.onSurface
                                     )
                                 }
 
@@ -353,8 +359,8 @@ fun TimerScreen() {
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(
-                                            if (isRunning) BrandTerracotta.copy(alpha = 0.15f)
-                                            else MaterialTheme.colorScheme.surfaceVariant
+                                            if (isRunning) ElectricBlue.copy(alpha = 0.18f)
+                                            else if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                         )
                                         .padding(horizontal = 10.dp, vertical = 3.dp)
                                 ) {
@@ -366,7 +372,7 @@ fun TimerScreen() {
                                         },
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isRunning) BrandTerracotta else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isRunning) ElectricBlue else colorScheme.onSurfaceVariant
                                     )
                                 }
 
@@ -376,7 +382,7 @@ fun TimerScreen() {
                                         text = "🍅 $pomodoroCycles pomodoros completed",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = BrandTerracotta
+                                        color = SoftMint
                                     )
                                 }
                             }
@@ -398,10 +404,11 @@ fun TimerScreen() {
                                 .size(48.dp)
                                 .testTag("timer_reset_button"),
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                containerColor = DarkSurfaceElevated,
+                                contentColor = Color.White
                             )
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Reset Timer", tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.Refresh, contentDescription = "Reset Timer", tint = Color.White)
                         }
 
                         Spacer(modifier = Modifier.width(20.dp))
@@ -411,8 +418,8 @@ fun TimerScreen() {
                             onClick = {
                                 if (isRunning) timerViewModel.pauseTimer() else timerViewModel.startTimer()
                             },
-                            containerColor = if (isRunning) BrandTerracotta else activeSubjectColor,
-                            contentColor = Color.White,
+                            containerColor = if (isRunning) AlertRed else ElectricBlue,
+                            contentColor = if (isRunning) Color.White else Color(0xFF071B2B),
                             shape = CircleShape,
                             modifier = Modifier
                                 .size(72.dp)
@@ -434,13 +441,14 @@ fun TimerScreen() {
                                 .size(48.dp)
                                 .testTag("timer_save_session_button"),
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = SoftMint.copy(alpha = 0.2f),
+                                contentColor = SoftMint
                             )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Save & Log Session",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = SoftMint
                             )
                         }
                     }
@@ -448,28 +456,14 @@ fun TimerScreen() {
             }
         }
 
-        // 3.5. AMBIENT FOCUS AUDIO / WHITE NOISE SOUND GENERATOR
-        item {
-            AmbientAudioPlayerCard(
-                currentSound = ambientSound,
-                isPlaying = isAmbientPlaying,
-                volume = ambientVolume,
-                autoPlayWithTimer = ambientAutoPlayWithTimer,
-                onSelectSound = { timerViewModel.selectAmbientSound(it) },
-                onTogglePlayPause = { timerViewModel.toggleAmbientPlayPause() },
-                onVolumeChange = { timerViewModel.setAmbientVolume(it) },
-                onToggleAutoPlay = { timerViewModel.toggleAmbientAutoPlayWithTimer(it) }
-            )
-        }
-
         // 4. TODAY'S LOGGED STUDY STATS & RECENT LOGS
         item {
-            BentoCard(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("today_timer_stats_card"),
                 shape = RoundedCornerShape(20.dp),
-                accentColor = StatusCompleted
+                accentColor = SoftMint
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -482,26 +476,26 @@ fun TimerScreen() {
                                 text = "Today's Study Log",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = colorScheme.onSurface
                             )
                             Text(
                                 text = "${overallStats.todayStudyMinutes} mins logged today across ${todaySessions.size} sessions",
                                 fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = colorScheme.onSurfaceVariant
                             )
                         }
 
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(StatusCompleted.copy(alpha = 0.15f))
+                                .background(SoftMint.copy(alpha = 0.18f))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "${overallStats.todayStudyMinutes / 60}h ${overallStats.todayStudyMinutes % 60}m",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = StatusCompleted
+                                color = SoftMint
                             )
                         }
                     }
@@ -512,14 +506,14 @@ fun TimerScreen() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                .background(if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "No sessions logged yet today. Start the timer to begin tracking!",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -531,8 +525,8 @@ fun TimerScreen() {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                         .padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -550,12 +544,12 @@ fun TimerScreen() {
                                                 text = session.subjectName,
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                color = colorScheme.onSurface
                                             )
                                             Text(
                                                 text = session.chapterTitle,
                                                 fontSize = 10.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
@@ -567,12 +561,12 @@ fun TimerScreen() {
                                             text = "${session.durationSeconds / 60} mins",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = ElectricBlue
                                         )
                                         Text(
                                             text = timeStr,
                                             fontSize = 9.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -588,10 +582,11 @@ fun TimerScreen() {
     if (showSubjectSelector) {
         AlertDialog(
             onDismissRequest = { showSubjectSelector = false },
-            title = { Text("Link Study Session Target", fontWeight = FontWeight.Bold, fontSize = 17.sp) },
+            containerColor = if (isDark) DarkSurface else colorScheme.surface,
+            title = { Text("Link Study Session Target", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = colorScheme.onSurface) },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Select Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Select Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -601,14 +596,20 @@ fun TimerScreen() {
                                 selected = isSel,
                                 onClick = { timerViewModel.setTimerTargetById(s.id, null) },
                                 label = { Text(s.name, fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(8.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ElectricBlue.copy(alpha = 0.2f),
+                                    selectedLabelColor = ElectricBlue,
+                                    containerColor = if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    labelColor = colorScheme.onSurfaceVariant
+                                )
                             )
                         }
                     }
 
                     if (availableChapters.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text("Select Chapter (Optional)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Select Chapter (Optional)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             items(availableChapters.take(20)) { top ->
@@ -617,7 +618,13 @@ fun TimerScreen() {
                                     selected = isChapterSel,
                                     onClick = { timerViewModel.setTimerTargetById(activeSubject?.id, if (isChapterSel) null else top.id) },
                                     label = { Text(top.title, fontSize = 10.sp, maxLines = 1) },
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = ElectricBlue.copy(alpha = 0.2f),
+                                        selectedLabelColor = ElectricBlue,
+                                        containerColor = if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        labelColor = colorScheme.onSurfaceVariant
+                                    )
                                 )
                             }
                         }
@@ -627,9 +634,10 @@ fun TimerScreen() {
             confirmButton = {
                 Button(
                     onClick = { showSubjectSelector = false },
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ElectricBlue, contentColor = Color(0xFF071B2B))
                 ) {
-                    Text("Apply Target")
+                    Text("Apply Target", fontWeight = FontWeight.Bold)
                 }
             }
         )

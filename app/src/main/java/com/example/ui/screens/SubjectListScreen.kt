@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -20,8 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Subject
@@ -61,6 +66,10 @@ fun SubjectListScreen(
     val subjects by subjectViewModel.subjects.collectAsState()
     val subjectStatsList by subjectViewModel.subjectStatsList.collectAsState()
     val overallStats by analyticsViewModel.overallStats.collectAsState()
+
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+    val focusManager = LocalFocusManager.current
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedSort by remember { mutableStateOf(SubjectSortOption.DEFAULT) }
@@ -103,10 +112,10 @@ fun SubjectListScreen(
         ) {
             // 1. HEADER & OVERALL PROGRESS CARD
             item {
-                BentoCard(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
-                    accentColor = MaterialTheme.colorScheme.primary
+                    accentColor = ElectricBlue
                 ) {
                     Column(
                         modifier = Modifier
@@ -120,10 +129,10 @@ fun SubjectListScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Syllabus Progress",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    text = "SYLLABUS PROGRESS",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = ElectricBlue,
                                     letterSpacing = 0.5.sp
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -131,7 +140,7 @@ fun SubjectListScreen(
                                     text = "Subjects & Modules",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = colorScheme.onSurface
                                 )
                             }
 
@@ -139,6 +148,10 @@ fun SubjectListScreen(
                             FilledTonalButton(
                                 onClick = { showAddDialog = true },
                                 shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = ElectricBlue.copy(alpha = 0.18f),
+                                    contentColor = ElectricBlue
+                                ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                 modifier = Modifier.testTag("add_subject_top_button")
                             ) {
@@ -160,13 +173,13 @@ fun SubjectListScreen(
                                 text = "${overallStats.completedChapters} of ${overallStats.totalChapters} chapters completed",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "${overallStats.completionPercentage}%",
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                fontWeight = FontWeight.ExtraBold,
+                                color = SoftMint
                             )
                         }
 
@@ -175,9 +188,10 @@ fun SubjectListScreen(
                         // Large gradient progress bar
                         LinearSyllabusBar(
                             progress = overallStats.completionPercentage / 100f,
-                            height = 10.dp,
-                            barColor = MaterialTheme.colorScheme.primary,
-                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant
+                            height = 9.dp,
+                            barColor = ElectricBlue,
+                            secondaryColor = SoftMint,
+                            backgroundColor = if (isDark) Color(0xFF1E2634) else colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -191,28 +205,28 @@ fun SubjectListScreen(
                                 label = "Subjects",
                                 value = "${subjects.size}",
                                 icon = Icons.Default.School,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = ElectricBlue,
                                 modifier = Modifier.weight(1f)
                             )
                             MiniMetricChip(
                                 label = "Active",
                                 value = "${overallStats.inProgressChapters}",
                                 icon = Icons.Default.TrendingUp,
-                                tint = StatusInProgress,
+                                tint = Color(0xFFF59E0B),
                                 modifier = Modifier.weight(1f)
                             )
                             MiniMetricChip(
                                 label = "Revision",
                                 value = "${overallStats.revisionDueChapters}",
                                 icon = Icons.Default.Update,
-                                tint = StatusRevisionDue,
+                                tint = Color(0xFFA78BFA),
                                 modifier = Modifier.weight(1f)
                             )
                             MiniMetricChip(
                                 label = "Weak",
                                 value = "${overallStats.weakChapters}",
                                 icon = Icons.Default.ReportProblem,
-                                tint = StatusWeak,
+                                tint = AlertRed,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -226,25 +240,53 @@ fun SubjectListScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search subjects by name or code...", fontSize = 13.sp) },
+                        placeholder = { Text("Search subjects by name, code, or description...", fontSize = 13.sp, color = colorScheme.onSurfaceVariant.copy(alpha = 0.75f)) },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Search, contentDescription = "Search", tint = if (searchQuery.isNotBlank()) ElectricBlue else colorScheme.onSurfaceVariant)
                         },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (searchQuery.isNotBlank() && filteredSubjectStats.isNotEmpty()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = ElectricBlue.copy(alpha = 0.15f),
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "${filteredSubjectStats.size}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ElectricBlue,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = {
+                                            searchQuery = ""
+                                            focusManager.clearFocus()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear search", tint = colorScheme.onSurfaceVariant)
+                                    }
                                 }
                             }
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("subject_search_input"),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface
+                            unfocusedContainerColor = if (isDark) DarkSurface else colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            focusedContainerColor = if (isDark) DarkSurface else colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            unfocusedBorderColor = if (isDark) DarkGlassBorder else colorScheme.outlineVariant,
+                            focusedBorderColor = ElectricBlue,
+                            focusedTextColor = colorScheme.onSurface,
+                            unfocusedTextColor = colorScheme.onSurface
                         )
                     )
 
@@ -271,8 +313,15 @@ fun SubjectListScreen(
                                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                 } else null,
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                    selectedLabelColor = MaterialTheme.colorScheme.primary
+                                    selectedContainerColor = ElectricBlue.copy(alpha = 0.2f),
+                                    selectedLabelColor = ElectricBlue,
+                                    containerColor = if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    labelColor = colorScheme.onSurfaceVariant
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    borderColor = if (isSelected) ElectricBlue else if (isDark) DarkGlassBorder else colorScheme.outlineVariant,
+                                    enabled = true,
+                                    selected = isSelected
                                 ),
                                 shape = RoundedCornerShape(10.dp)
                             )
@@ -294,15 +343,15 @@ fun SubjectListScreen(
                         text = "Subjects in Database (${filteredSubjectStats.size})",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = colorScheme.onSurface
                     )
                 }
             }
 
-            // 4. SUBJECT LIST ITEMS (LazyColumn items)
+            // 4. SUBJECT LIST ITEMS
             if (filteredSubjectStats.isEmpty()) {
                 item {
-                    BentoCard(
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 24.dp),
@@ -317,7 +366,7 @@ fun SubjectListScreen(
                             Icon(
                                 imageVector = Icons.Default.School,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.size(48.dp)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
@@ -325,22 +374,23 @@ fun SubjectListScreen(
                                 text = if (searchQuery.isNotEmpty()) "No subjects match '$searchQuery'" else "No subjects added yet",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = if (searchQuery.isNotEmpty()) "Try clearing search filters." else "Create your first syllabus subject to start tracking.",
                                 fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { showAddDialog = true },
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ElectricBlue, contentColor = Color(0xFF071B2B))
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Add New Subject")
+                                Text("Add New Subject", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -372,8 +422,8 @@ fun SubjectListScreen(
             onClick = { showAddDialog = true },
             icon = { Icon(Icons.Default.Add, contentDescription = "Add Subject") },
             text = { Text("New Subject", fontWeight = FontWeight.Bold) },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = ElectricBlue,
+            contentColor = Color(0xFF071B2B),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -415,23 +465,24 @@ fun SubjectListScreen(
         val sub = subjectToDelete!!
         AlertDialog(
             onDismissRequest = { subjectToDelete = null },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusWeak) },
-            title = { Text("Delete '${sub.name}'?") },
-            text = { Text("This will permanently remove this subject and all its syllabus chapters, sections, and progress.") },
+            containerColor = if (isDark) DarkSurface else colorScheme.surface,
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = AlertRed) },
+            title = { Text("Delete '${sub.name}'?", color = colorScheme.onSurface) },
+            text = { Text("This will permanently remove this subject and all its syllabus chapters, sections, and progress.", color = colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Button(
                     onClick = {
                         subjectViewModel.deleteSubject(sub)
                         subjectToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusWeak)
+                    colors = ButtonDefaults.buttonColors(containerColor = AlertRed)
                 ) {
-                    Text("Delete", color = Color.White)
+                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { subjectToDelete = null }) {
-                    Text("Cancel")
+                    Text("Cancel", color = colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -455,17 +506,17 @@ fun SubjectProgressCard(
         try {
             Color(android.graphics.Color.parseColor(subject.colorHex))
         } catch (e: Exception) {
-            BrandForestGreen
+            ElectricBlue
         }
     }
 
     var showMenu by remember { mutableStateOf(false) }
 
-    BentoCard(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("subject_card_${subject.id}"),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         accentColor = subjectColor,
         onClick = onOpen
     ) {
@@ -554,36 +605,37 @@ fun SubjectProgressCard(
 
                     DropdownMenu(
                         expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Open Syllabus") },
-                            leadingIcon = { Icon(Icons.Default.AutoStories, contentDescription = null) },
+                            text = { Text("Open Syllabus", color = MaterialTheme.colorScheme.onSurface) },
+                            leadingIcon = { Icon(Icons.Default.AutoStories, contentDescription = null, tint = ElectricBlue) },
                             onClick = {
                                 showMenu = false
                                 onOpen()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Study Timer") },
-                            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                            text = { Text("Study Timer", color = MaterialTheme.colorScheme.onSurface) },
+                            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, tint = ElectricBlue) },
                             onClick = {
                                 showMenu = false
                                 onStartTimer()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Edit Details") },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            text = { Text("Edit Details", color = MaterialTheme.colorScheme.onSurface) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface) },
                             onClick = {
                                 showMenu = false
                                 onEdit()
                             }
                         )
-                        HorizontalDivider()
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         DropdownMenuItem(
-                            text = { Text("Delete Subject", color = StatusWeak) },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = StatusWeak) },
+                            text = { Text("Delete Subject", color = AlertRed) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = AlertRed) },
                             onClick = {
                                 showMenu = false
                                 onDelete()
@@ -623,7 +675,7 @@ fun SubjectProgressCard(
                     Text(
                         text = "${stats.completionPercentage}%",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = subjectColor,
                         modifier = Modifier.testTag("subject_progress_percent_${subject.id}")
                     )
@@ -635,9 +687,9 @@ fun SubjectProgressCard(
             // Animated Linear Progress Bar
             LinearSyllabusBar(
                 progress = stats.completionPercentage / 100f,
-                height = 8.dp,
+                height = 7.dp,
                 barColor = subjectColor,
-                backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.testTag("subject_progress_bar_${subject.id}")
             )
 
@@ -651,26 +703,26 @@ fun SubjectProgressCard(
                 StatusPill(
                     count = stats.completedChapters,
                     label = "Done",
-                    color = StatusCompleted,
+                    color = SoftMint,
                     modifier = Modifier.weight(1f)
                 )
                 StatusPill(
                     count = stats.inProgressChapters,
                     label = "Active",
-                    color = StatusInProgress,
+                    color = Color(0xFFF59E0B),
                     modifier = Modifier.weight(1f)
                 )
                 StatusPill(
                     count = stats.notStartedChapters,
                     label = "Left",
-                    color = StatusNotStarted,
+                    color = Color(0xFF64748B),
                     modifier = Modifier.weight(1f)
                 )
                 if (stats.weakChapters > 0) {
                     StatusPill(
                         count = stats.weakChapters,
                         label = "Weak",
-                        color = StatusWeak,
+                        color = AlertRed,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -678,7 +730,7 @@ fun SubjectProgressCard(
                     StatusPill(
                         count = stats.revisionDueChapters,
                         label = "Due",
-                        color = StatusRevisionDue,
+                        color = Color(0xFFA78BFA),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -714,7 +766,11 @@ fun SubjectProgressCard(
                     FilledTonalIconButton(
                         onClick = onStartTimer,
                         modifier = Modifier.size(32.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            contentColor = subjectColor
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Timer,
@@ -728,12 +784,12 @@ fun SubjectProgressCard(
                         onClick = onOpen,
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = subjectColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = subjectColor, contentColor = Color(0xFF071B2B)),
                         modifier = Modifier.height(32.dp)
                     ) {
-                        Text("View Syllabus", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("View Syllabus", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                        Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp))
                     }
                 }
             }
@@ -751,7 +807,7 @@ private fun StatusPill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.12f))
+            .background(color.copy(alpha = 0.14f))
             .padding(vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -780,18 +836,20 @@ private fun MiniMetricChip(
     tint: Color,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            .background(if (isDark) DarkSurfaceElevated else colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .padding(horizontal = 6.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
             Spacer(modifier = Modifier.height(2.dp))
-            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(text = label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colorScheme.onSurface)
+            Text(text = label, fontSize = 9.sp, color = colorScheme.onSurfaceVariant)
         }
     }
 }

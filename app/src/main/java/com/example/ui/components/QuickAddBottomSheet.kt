@@ -27,6 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 enum class QuickAddTab(val label: String) {
+    QUICK_NOTE("💡 Quick Note"),
     CHAPTER("Chapter"),
     SECTION("Section"),
     SUBJECT("Subject"),
@@ -44,9 +45,10 @@ fun QuickAddBottomSheet(
     onAddChapter: (Long, Long?, ItemType, String, Priority, Difficulty, String) -> Unit,
     onAddSubject: (String, String, String, String, String) -> Unit,
     onAddStudyPlan: (String, String, Long, String, String, Int, String) -> Unit,
-    onAddGoal: (String, String, Long?, String, Int, Float) -> Unit
+    onAddGoal: (String, String, Long?, String, Int, Float) -> Unit,
+    onAddQuickNote: ((Long, String, String, String, Priority) -> Unit)? = null
 ) {
-    var selectedTab by remember { mutableStateOf(QuickAddTab.CHAPTER) }
+    var selectedTab by remember { mutableStateOf(QuickAddTab.QUICK_NOTE) }
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -56,6 +58,24 @@ fun QuickAddBottomSheet(
         focusManager.clearFocus()
         onDismiss()
     }
+
+    // Quick Note form state
+    var quickNoteSubjectId by remember {
+        mutableStateOf(preselectedSubjectId ?: subjects.firstOrNull()?.id ?: 1L)
+    }
+
+    LaunchedEffect(subjects, preselectedSubjectId) {
+        if (preselectedSubjectId != null && subjects.any { it.id == preselectedSubjectId }) {
+            quickNoteSubjectId = preselectedSubjectId
+        } else if (subjects.isNotEmpty() && subjects.none { it.id == quickNoteSubjectId }) {
+            quickNoteSubjectId = subjects.first().id
+        }
+    }
+    var quickNoteTitle by remember { mutableStateOf("") }
+    var quickNoteContent by remember { mutableStateOf("") }
+    var quickNotePriority by remember { mutableStateOf(Priority.MEDIUM) }
+    var quickNoteTags by remember { mutableStateOf(setOf<String>()) }
+    val presetQuickTags = listOf("#KeyPoint", "#Formula", "#Mnemonic", "#ExamTrick", "#PYQ", "#Doubt", "#Concept")
 
     // Chapter / Section form state
     var selectedSubjectId by remember {
@@ -133,6 +153,144 @@ fun QuickAddBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             when (selectedTab) {
+                QuickAddTab.QUICK_NOTE -> {
+                    // Subject Selector
+                    Text("Subject Category", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    var noteSubMenuExpanded by remember { mutableStateOf(false) }
+                    val currentNoteSubject = subjects.find { it.id == quickNoteSubjectId }
+                    Box {
+                        OutlinedButton(
+                            onClick = { noteSubMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(currentNoteSubject?.name ?: "Select Subject")
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                        }
+                        DropdownMenu(expanded = noteSubMenuExpanded, onDismissRequest = { noteSubMenuExpanded = false }) {
+                            subjects.forEach { s ->
+                                DropdownMenuItem(
+                                    text = { Text(s.name) },
+                                    onClick = {
+                                        quickNoteSubjectId = s.id
+                                        noteSubMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = quickNoteTitle,
+                        onValueChange = { quickNoteTitle = it },
+                        label = { Text("Topic / Note Title (e.g. Fundamental Rights Article 32)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = quickNoteContent,
+                        onValueChange = { quickNoteContent = it },
+                        label = { Text("Study Thoughts & Insights") },
+                        placeholder = {
+                            Text(
+                                "• Shortcut formulas or rules\n• Mnemonics & recall anchors\n• Crucial exam exceptions or doubts...",
+                                fontSize = 12.sp
+                            )
+                        },
+                        minLines = 4,
+                        maxLines = 8,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    // Quick Tag Chips
+                    Text("Quick Tags", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presetQuickTags.take(4).forEach { tag ->
+                            val isSelected = quickNoteTags.contains(tag)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    quickNoteTags = if (isSelected) quickNoteTags - tag else quickNoteTags + tag
+                                },
+                                label = { Text(tag, fontSize = 10.5.sp) }
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presetQuickTags.drop(4).forEach { tag ->
+                            val isSelected = quickNoteTags.contains(tag)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    quickNoteTags = if (isSelected) quickNoteTags - tag else quickNoteTags + tag
+                                },
+                                label = { Text(tag, fontSize = 10.5.sp) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = {
+                            if (quickNoteContent.isNotBlank() || quickNoteTitle.isNotBlank()) {
+                                val formattedTags = quickNoteTags.joinToString(",")
+                                if (onAddQuickNote != null) {
+                                    onAddQuickNote(
+                                        quickNoteSubjectId,
+                                        quickNoteTitle.trim(),
+                                        quickNoteContent.trim(),
+                                        formattedTags,
+                                        quickNotePriority
+                                    )
+                                } else {
+                                    val finalTitle = quickNoteTitle.ifBlank {
+                                        "Study Note: ${SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date())}"
+                                    }
+                                    onAddChapter(
+                                        quickNoteSubjectId,
+                                        null,
+                                        ItemType.CHAPTER,
+                                        finalTitle,
+                                        quickNotePriority,
+                                        Difficulty.MEDIUM,
+                                        if (formattedTags.isNotBlank()) "#QuickNote,$formattedTags" else "#QuickNote"
+                                    )
+                                }
+                                safeDismiss()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = quickNoteContent.isNotBlank() || quickNoteTitle.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ElectricBlue,
+                            contentColor = Color(0xFF071B2B)
+                        )
+                    ) {
+                        Text("Capture Study Thought 💡", fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 QuickAddTab.CHAPTER, QuickAddTab.SECTION -> {
                     // Subject Selector
                     Text("Select Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)

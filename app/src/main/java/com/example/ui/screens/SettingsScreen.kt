@@ -35,7 +35,9 @@ import com.example.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onReplayOnboarding: (() -> Unit)? = null
+) {
     val profileViewModel: ProfileViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
@@ -608,6 +610,26 @@ fun SettingsScreen() {
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    if (onReplayOnboarding != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        OutlinedButton(
+                            onClick = onReplayOnboarding,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("replay_welcome_tour_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoStories,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Replay Welcome Tour", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

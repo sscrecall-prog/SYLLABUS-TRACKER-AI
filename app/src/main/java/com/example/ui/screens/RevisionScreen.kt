@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,7 +70,9 @@ fun RevisionScreen(
         RevisionTab.WEAK_NEEDS_REVIEW -> revisionState.weakList
     }
 
-    val dateFormat = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+
     val shortDateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
     LazyColumn(
@@ -83,8 +86,9 @@ fun RevisionScreen(
         item {
             GradientCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = listOf(Color(0xFF6A1B9A), Color(0xFF4A148C))
+                shape = RoundedCornerShape(22.dp),
+                colors = if (isDark) listOf(Color(0xFF1E1B38), Color(0xFF151426)) else listOf(Color(0xFFEDE9FE), Color(0xFFF5F3FF)),
+                borderColor = Color(0xFFA78BFA).copy(alpha = 0.4f)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -94,30 +98,30 @@ fun RevisionScreen(
                     ) {
                         Column {
                             Text(
-                                text = "🔄 Smart Revision Center",
+                                text = "🔄 Smart Revision Engine",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = BrandWarmCream
+                                color = colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Spaced Repetition: ${appSettings.revisionIntervals.joinToString(" → ")} days",
                                 fontSize = 12.sp,
-                                color = BrandCreamDark
+                                color = colorScheme.onSurfaceVariant
                             )
                         }
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(Color(0xFFA78BFA).copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "${revisionState.dueTodayList.size + revisionState.overdueList.size}",
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BrandWarmCream
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFA78BFA)
                             )
                         }
                     }
@@ -127,26 +131,26 @@ fun RevisionScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.Black.copy(alpha = 0.25f))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDark) Color.Black.copy(alpha = 0.35f) else colorScheme.surfaceVariant.copy(alpha = 0.6f))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Due Today", fontSize = 10.sp, color = BrandCreamDark)
-                            Text("${revisionState.dueTodayList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = BrandWarmCream)
+                            Text("Due Today", fontSize = 10.sp, color = colorScheme.onSurfaceVariant)
+                            Text("${revisionState.dueTodayList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = ElectricBlue)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Overdue", fontSize = 10.sp, color = BrandCreamDark)
-                            Text("${revisionState.overdueList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = StatusWeak)
+                            Text("Overdue", fontSize = 10.sp, color = colorScheme.onSurfaceVariant)
+                            Text("${revisionState.overdueList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AlertRed)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Upcoming", fontSize = 10.sp, color = BrandCreamDark)
-                            Text("${revisionState.upcomingList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = BrandWarmCream)
+                            Text("Upcoming", fontSize = 10.sp, color = colorScheme.onSurfaceVariant)
+                            Text("${revisionState.upcomingList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B))
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Total Revised", fontSize = 10.sp, color = BrandCreamDark)
-                            Text("${revisionState.recentlyRevisedList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = StatusCompleted)
+                            Text("Total Revised", fontSize = 10.sp, color = colorScheme.onSurfaceVariant)
+                            Text("${revisionState.recentlyRevisedList.size}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SoftMint)
                         }
                     }
                 }
@@ -159,6 +163,7 @@ fun RevisionScreen(
                 selectedTabIndex = selectedTab.ordinal,
                 edgePadding = 0.dp,
                 containerColor = Color.Transparent,
+                contentColor = ElectricBlue,
                 divider = {}
             ) {
                 RevisionTab.values().forEach { tab ->
@@ -175,7 +180,8 @@ fun RevisionScreen(
                         text = {
                             Text(
                                 text = "${tab.label} ($count)",
-                                fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Medium
+                                fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedTab == tab) ElectricBlue else colorScheme.onSurfaceVariant
                             )
                         }
                     )
@@ -190,7 +196,7 @@ fun RevisionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 30.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -201,20 +207,21 @@ fun RevisionScreen(
                         Icon(
                             imageVector = Icons.Default.CheckCircleOutline,
                             contentDescription = null,
-                            tint = StatusCompleted,
+                            tint = SoftMint,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = if (selectedTab == RevisionTab.DUE_TODAY) "No revisions due today! 🎉" else "No chapters in this category",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "You're all caught up with your spaced repetition schedule.",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -222,15 +229,14 @@ fun RevisionScreen(
         } else {
             items(activeList, key = { it.id }) { item ->
                 val sub = subjectsMap[item.subjectId]
-                val subColor = try { Color(android.graphics.Color.parseColor(sub?.colorHex ?: "#2D4F1E")) } catch (e: Exception) { BrandForestGreen }
+                val subColor = try { Color(android.graphics.Color.parseColor(sub?.colorHex ?: "#6EC2FD")) } catch (e: Exception) { ElectricBlue }
 
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { syllabusViewModel.selectChapter(item) },
-                    shape = RoundedCornerShape(14.dp),
-                    elevation = 2.dp,
-                    accentColor = if (item.isWeak) StatusWeak else StatusRevisionDue
+                    shape = RoundedCornerShape(18.dp),
+                    accentColor = if (item.isWeak) AlertRed else Color(0xFFA78BFA)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
@@ -244,7 +250,7 @@ fun RevisionScreen(
                                         .size(8.dp)
                                         .clip(CircleShape)
                                         .background(subColor)
-                                )
+                                    )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = sub?.name ?: "Subject",
@@ -258,7 +264,7 @@ fun RevisionScreen(
                                 text = "Revision #${item.revisionCount + 1}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = StatusRevisionDue
+                                color = Color(0xFFA78BFA)
                             )
                         }
 
@@ -268,7 +274,7 @@ fun RevisionScreen(
                             text = item.title,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = colorScheme.onSurface
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -281,16 +287,16 @@ fun RevisionScreen(
                             Column {
                                 if (item.nextRevisionTimestamp != null) {
                                     Text(
-                                        text = "Target Date: ${shortDateFormat.format(Date(item.nextRevisionTimestamp))}",
+                                        text = "Target: ${shortDateFormat.format(Date(item.nextRevisionTimestamp))}",
                                         fontSize = 11.sp,
-                                        color = if (item.nextRevisionTimestamp < System.currentTimeMillis()) StatusWeak else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (item.nextRevisionTimestamp < System.currentTimeMillis()) AlertRed else colorScheme.onSurfaceVariant
                                     )
                                 }
                                 if (item.lastStudiedTimestamp != null) {
                                     Text(
-                                        text = "Last Revised: ${shortDateFormat.format(Date(item.lastStudiedTimestamp))}",
+                                        text = "Last: ${shortDateFormat.format(Date(item.lastStudiedTimestamp))}",
                                         fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -306,6 +312,7 @@ fun RevisionScreen(
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ElectricBlue),
                                     modifier = Modifier.height(30.dp)
                                 ) {
                                     Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(12.dp))
@@ -314,10 +321,10 @@ fun RevisionScreen(
                                 }
 
                                 Text(
-                                    text = "Log & Schedule Next:",
+                                    text = "Log & Next:",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = colorScheme.onSurfaceVariant
                                 )
 
                                 Row(
@@ -331,11 +338,11 @@ fun RevisionScreen(
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(
                                                     when (days) {
-                                                        1 -> Color(0xFF9C27B0).copy(alpha = 0.12f)
-                                                        3 -> Color(0xFF3F51B5).copy(alpha = 0.12f)
-                                                        7 -> Color(0xFF00BCD4).copy(alpha = 0.12f)
-                                                        15 -> Color(0xFF009688).copy(alpha = 0.12f)
-                                                        else -> Color(0xFF4CAF50).copy(alpha = 0.12f)
+                                                        1 -> Color(0xFFA78BFA).copy(alpha = 0.18f)
+                                                        3 -> ElectricBlue.copy(alpha = 0.18f)
+                                                        7 -> SoftMint.copy(alpha = 0.18f)
+                                                        15 -> Color(0xFFF59E0B).copy(alpha = 0.18f)
+                                                        else -> Color(0xFF10B981).copy(alpha = 0.18f)
                                                     }
                                                 )
                                                 .clickable {
@@ -348,11 +355,11 @@ fun RevisionScreen(
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = when (days) {
-                                                    1 -> Color(0xFF9C27B0)
-                                                    3 -> Color(0xFF3F51B5)
-                                                    7 -> Color(0xFF00BCD4)
-                                                    15 -> Color(0xFF009688)
-                                                    else -> Color(0xFF4CAF50)
+                                                    1 -> Color(0xFFA78BFA)
+                                                    3 -> ElectricBlue
+                                                    7 -> SoftMint
+                                                    15 -> Color(0xFFF59E0B)
+                                                    else -> Color(0xFF10B981)
                                                 }
                                             )
                                         }

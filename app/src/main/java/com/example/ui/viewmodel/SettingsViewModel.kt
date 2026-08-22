@@ -71,8 +71,28 @@ class SettingsViewModel(application: Application) : BaseViewModel(application) {
     fun updateStudyTargets(dailyMins: Int, weeklyMins: Int) {
         viewModelScope.launch {
             val current = appSettings.value
-            settingsRepository.updateSettings(current.copy(dailyTargetMinutes = dailyMins, weeklyTargetMinutes = weeklyMins))
+            val validDaily = dailyMins.coerceAtLeast(15)
+            val validWeekly = weeklyMins.coerceAtLeast(60)
+            settingsRepository.updateSettings(current.copy(dailyTargetMinutes = validDaily, weeklyTargetMinutes = validWeekly))
             showSnackbar("Study targets updated")
+        }
+    }
+
+    fun updateDailyTargetHours(hours: Float) {
+        viewModelScope.launch {
+            val current = appSettings.value
+            val newDailyMinutes = (hours * 60).toInt().coerceAtLeast(15)
+            settingsRepository.updateSettings(current.copy(dailyTargetMinutes = newDailyMinutes))
+            showSnackbar("Daily study goal updated to ${if (hours % 1f == 0f) hours.toInt().toString() else String.format(java.util.Locale.getDefault(), "%.1f", hours)} hours!")
+        }
+    }
+
+    fun updateWeeklyTargetHours(hours: Int) {
+        viewModelScope.launch {
+            val current = appSettings.value
+            val newWeeklyMinutes = hours * 60
+            settingsRepository.updateSettings(current.copy(weeklyTargetMinutes = newWeeklyMinutes))
+            showSnackbar("Weekly study goal updated to ${hours} hours!")
         }
     }
 

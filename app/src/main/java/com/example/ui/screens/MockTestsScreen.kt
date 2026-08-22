@@ -79,6 +79,7 @@ fun MockTestsScreen(
     var showAddEditDialog by remember { mutableStateOf(false) }
     var mockToEdit by remember { mutableStateOf<MockTest?>(null) }
     var showDetailDialog by remember { mutableStateOf(false) }
+    var selectedSectionTab by remember { mutableStateOf(0) } // 0 = All Mocks Tracker, 1 = Full Length Analysis
 
     val platforms = remember(allMockTests) {
         val base = listOf("All", "Testbook", "Oliveboard", "PracticeMock", "Gradeup", "Unacademy")
@@ -135,172 +136,278 @@ fun MockTestsScreen(
                 }
             }
 
-            // Hero Highlight & Performance KPIs
+            // Section Switcher between "All Mocks Tracker" and "Full Length Analysis"
             item {
-                MockPerformanceHero(
-                    mockStats = mockStats,
-                    latestMock = allMockTests.firstOrNull(),
-                    onViewLatest = {
-                        if (allMockTests.isNotEmpty()) {
-                            mockTestsViewModel.selectMockTest(allMockTests.first())
-                            showDetailDialog = true
-                        }
-                    }
-                )
-            }
-
-            // Score Progression Graph
-            if (allMockTests.isNotEmpty()) {
-                item {
-                    MockScoreTrendChart(
-                        mockTests = allMockTests.sortedBy { it.timestamp },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            }
-
-            // Subject Wise Breakdown
-            if (allMockTests.isNotEmpty()) {
-                item {
-                    MockSubjectAveragesCard(
-                        mockStats = mockStats,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            }
-
-            // Search Bar & Filter Chips
-            item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { mockTestsViewModel.setMockSearchQuery(it) },
-                        placeholder = { Text("Search mocks by name, platform, weak chapters...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { mockTestsViewModel.setMockSearchQuery("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("mock_search_field")
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Platform Filter Chips
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp)
-                    ) {
-                        items(platforms) { p ->
-                            val isSelected = (p == "All" && platformFilter == null) || (platformFilter.equals(p, ignoreCase = true))
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    if (p == "All") mockTestsViewModel.setMockPlatformFilter(null)
-                                    else mockTestsViewModel.setMockPlatformFilter(p)
-                                },
-                                label = { Text(p, fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = BrandForestGreen,
-                                    selectedLabelColor = BrandWarmCream
-                                )
-                            )
-                        }
-                    }
-
-                    // Mock Type Chips
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 4.dp)
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = typeFilter == null,
-                                onClick = { mockTestsViewModel.setMockTypeFilter(null) },
-                                label = { Text("All Types", fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = BrandTerracotta,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                        items(MockTestType.values()) { type ->
-                            val isSelected = typeFilter == type
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { mockTestsViewModel.setMockTypeFilter(type) },
-                                label = { Text(type.label, fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = BrandTerracotta,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Results count banner
-            item {
-                Row(
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        text = "Attempted Mocks (${mockTests.size})",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Tab 0: All Mocks Tracker
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selectedSectionTab == 0) BrandForestGreen else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { selectedSectionTab = 0 }
+                                .testTag("all_mocks_tab")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Assessment,
+                                    contentDescription = null,
+                                    tint = if (selectedSectionTab == 0) BrandWarmCream else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "All Mocks Tracker (${allMockTests.size})",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (selectedSectionTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selectedSectionTab == 0) BrandWarmCream else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        // Tab 1: Full Length Analysis
+                        val fullCount = remember(allMockTests) { allMockTests.count { it.testType == MockTestType.FULL_LENGTH } }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selectedSectionTab == 1) BrandForestGreen else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { selectedSectionTab = 1 }
+                                .testTag("full_length_analysis_tab")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Analytics,
+                                    contentDescription = null,
+                                    tint = if (selectedSectionTab == 1) BrandWarmCream else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Full Length Analysis ($fullCount)",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (selectedSectionTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selectedSectionTab == 1) BrandWarmCream else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (selectedSectionTab == 0) {
+                // Hero Highlight & Performance KPIs
+                item {
+                    MockPerformanceHero(
+                        mockStats = mockStats,
+                        latestMock = allMockTests.firstOrNull(),
+                        onViewLatest = {
+                            if (allMockTests.isNotEmpty()) {
+                                mockTestsViewModel.selectMockTest(allMockTests.first())
+                                showDetailDialog = true
+                            }
+                        }
                     )
-                    if (mockTests.isNotEmpty()) {
-                        Text(
-                            text = "Avg Acc: ${String.format("%.1f", mockStats.averageAccuracy)}%",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = StatusCompleted
+                }
+
+                // Score Progression Graph
+                if (allMockTests.isNotEmpty()) {
+                    item {
+                        MockScoreTrendChart(
+                            mockTests = allMockTests.sortedBy { it.timestamp },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
                 }
-            }
 
-            // List of Mock Tests
-            if (mockTests.isEmpty()) {
+                // Subject Wise Breakdown
+                if (allMockTests.isNotEmpty()) {
+                    item {
+                        MockSubjectAveragesCard(
+                            mockStats = mockStats,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // Search Bar & Filter Chips
                 item {
-                    EmptyMockTestsCard(
-                        onAddClick = {
-                            mockToEdit = null
-                            showAddEditDialog = true
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { mockTestsViewModel.setMockSearchQuery(it) },
+                            placeholder = { Text("Search mocks by name, platform, weak chapters...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchQuery.isNotBlank()) {
+                                    IconButton(onClick = { mockTestsViewModel.setMockSearchQuery("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("mock_search_field")
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Platform Filter Chips
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            items(platforms) { p ->
+                                val isSelected = (p == "All" && platformFilter == null) || (platformFilter.equals(p, ignoreCase = true))
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        if (p == "All") mockTestsViewModel.setMockPlatformFilter(null)
+                                        else mockTestsViewModel.setMockPlatformFilter(p)
+                                    },
+                                    label = { Text(p, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = BrandForestGreen,
+                                        selectedLabelColor = BrandWarmCream
+                                    )
+                                )
+                            }
                         }
-                    )
+
+                        // Mock Type Chips
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 4.dp)
+                        ) {
+                            item {
+                                FilterChip(
+                                    selected = typeFilter == null,
+                                    onClick = { mockTestsViewModel.setMockTypeFilter(null) },
+                                    label = { Text("All Types", fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = BrandTerracotta,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                            items(MockTestType.values()) { type ->
+                                val isSelected = typeFilter == type
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { mockTestsViewModel.setMockTypeFilter(type) },
+                                    label = { Text(type.label, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = BrandTerracotta,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Results count banner
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Attempted Mocks (${mockTests.size})",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (mockTests.isNotEmpty()) {
+                            Text(
+                                text = "Avg Acc: ${String.format("%.1f", mockStats.averageAccuracy)}%",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = StatusCompleted
+                            )
+                        }
+                    }
+                }
+
+                // List of Mock Tests
+                if (mockTests.isEmpty()) {
+                    item {
+                        EmptyMockTestsCard(
+                            onAddClick = {
+                                mockToEdit = null
+                                showAddEditDialog = true
+                            }
+                        )
+                    }
+                } else {
+                    items(mockTests, key = { it.id }) { mock ->
+                        MockTestCard(
+                            mockTest = mock,
+                            onClick = {
+                                mockTestsViewModel.selectMockTest(mock)
+                                showDetailDialog = true
+                            },
+                            onEdit = {
+                                mockToEdit = mock
+                                showAddEditDialog = true
+                            },
+                            onDelete = {
+                                mockTestsViewModel.deleteMockTest(mock)
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
                 }
             } else {
-                items(mockTests, key = { it.id }) { mock ->
-                    MockTestCard(
-                        mockTest = mock,
-                        onClick = {
-                            mockTestsViewModel.selectMockTest(mock)
-                            showDetailDialog = true
-                        },
-                        onEdit = {
-                            mockToEdit = mock
-                            showAddEditDialog = true
-                        },
-                        onDelete = {
-                            mockTestsViewModel.deleteMockTest(mock)
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
-                }
+                // Dedicated Full Length Analysis Section
+                fullLengthAnalysisContent(
+                    allMockTests = allMockTests,
+                    onAddFullMockClick = {
+                        mockToEdit = null
+                        showAddEditDialog = true
+                    },
+                    onMockClick = { mock ->
+                        mockTestsViewModel.selectMockTest(mock)
+                        showDetailDialog = true
+                    },
+                    onEditMock = { mock ->
+                        mockToEdit = mock
+                        showAddEditDialog = true
+                    },
+                    onDeleteMock = { mock ->
+                        mockTestsViewModel.deleteMockTest(mock)
+                    }
+                )
             }
         }
     }

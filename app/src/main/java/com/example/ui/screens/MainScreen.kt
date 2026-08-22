@@ -45,7 +45,9 @@ import com.example.ui.viewmodel.PlannerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onReplayOnboarding: (() -> Unit)? = null
+) {
     val mistakeNotebookViewModel: MistakeNotebookViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
     val subjectViewModel: SubjectViewModel = viewModel()
@@ -71,6 +73,7 @@ fun MainScreen() {
     val allBadges by profileViewModel.allBadges.collectAsState()
 
     var showQuickAddSheet by remember { mutableStateOf(false) }
+    var showQuickNoteModal by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
@@ -272,6 +275,8 @@ fun MainScreen() {
             NavDestination.TIMER -> "dest_timer"
             NavDestination.CALENDAR -> "dest_calendar"
             NavDestination.PROFILE -> "dest_profile"
+            NavDestination.UI_VS_UX -> "dest_ui_vs_ux"
+            NavDestination.LANDING -> "dest_landing"
             NavDestination.SETTINGS -> "dest_settings"
         }
 
@@ -397,6 +402,18 @@ fun MainScreen() {
 
                             Spacer(modifier = Modifier.width(4.dp))
 
+                            // Quick Note Action Shortcut
+                            IconButton(
+                                onClick = { showQuickNoteModal = true },
+                                modifier = Modifier.testTag("top_bar_quick_note_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Lightbulb,
+                                    contentDescription = "Capture Quick Note",
+                                    tint = ElectricBlue
+                                )
+                            }
+
                             // Timer action shortcut
                             IconButton(
                                 onClick = { mainViewModel.navigateTo(NavDestination.TIMER) },
@@ -477,6 +494,14 @@ fun MainScreen() {
                                     )
                                     HorizontalDivider()
                                     DropdownMenuItem(
+                                        text = { Text("Landing Page / Showcase") },
+                                        leadingIcon = { Icon(Icons.Default.RocketLaunch, contentDescription = null, tint = ElectricBlue) },
+                                        onClick = {
+                                            mainViewModel.navigateTo(NavDestination.LANDING)
+                                            showMoreMenu = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text("Settings & Backup") },
                                         leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
                                         onClick = {
@@ -494,11 +519,10 @@ fun MainScreen() {
                 },
                 bottomBar = {
                     if (!isWideScreen && !isMediumScreen) {
-                        val maxItems = if (maxWidth < 360.dp) 4 else if (maxWidth < 430.dp) 5 else 6
                         AnimatedBottomNavigation(
                             items = navItems,
                             activeItemId = activeNavId,
-                            maxVisibleItems = maxItems,
+                            onFabClick = { showQuickAddSheet = true },
                             onItemSelected = { item ->
                                 when {
                                     item.id.startsWith("subject_") -> {
@@ -519,6 +543,7 @@ fun MainScreen() {
                                     item.id == "dest_goals" -> mainViewModel.navigateTo(NavDestination.GOALS)
                                     item.id == "dest_timer" -> mainViewModel.navigateTo(NavDestination.TIMER)
                                     item.id == "dest_calendar" -> mainViewModel.navigateTo(NavDestination.CALENDAR)
+                                    item.id == "dest_ui_vs_ux" -> mainViewModel.navigateTo(NavDestination.UI_VS_UX)
                                     item.id == "dest_settings" -> mainViewModel.navigateTo(NavDestination.SETTINGS)
                                 }
                             }
@@ -526,11 +551,12 @@ fun MainScreen() {
                     }
                 },
                 floatingActionButton = {
-                    if (currentNav != NavDestination.SETTINGS && currentNav != NavDestination.TIMER && currentNav != NavDestination.SUBJECTS && currentNav != NavDestination.PROFILE && currentNav != NavDestination.MOCK_TESTS && currentNav != NavDestination.MISTAKES) {
+                    // Show dedicated FAB on Desktop / Wide screens where sidebar navigation is used instead of center FAB bottom bar
+                    if ((isWideScreen || isMediumScreen) && currentNav != NavDestination.SETTINGS && currentNav != NavDestination.TIMER && currentNav != NavDestination.SUBJECTS && currentNav != NavDestination.PROFILE && currentNav != NavDestination.MOCK_TESTS && currentNav != NavDestination.MISTAKES) {
                         FloatingActionButton(
                             onClick = { showQuickAddSheet = true },
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = CenterFabPurple,
+                            contentColor = Color.White,
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier
                                 .motionPress(onClick = { showQuickAddSheet = true })
@@ -699,6 +725,8 @@ fun MainScreen() {
                                     NavDestination.GOALS -> Icons.Default.TrackChanges
                                     NavDestination.TIMER -> Icons.Default.Timer
                                     NavDestination.CALENDAR -> Icons.Default.Event
+                                    NavDestination.UI_VS_UX -> Icons.Default.Palette
+                                    NavDestination.LANDING -> Icons.Default.RocketLaunch
                                     NavDestination.SETTINGS -> Icons.Default.Settings
                                 }
 
@@ -716,7 +744,8 @@ fun MainScreen() {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight(),
+                            .fillMaxHeight()
+                            .testTag("content_container"),
                         contentAlignment = Alignment.TopCenter
                     ) {
                         Box(
@@ -765,7 +794,15 @@ fun MainScreen() {
                                     )
                                     NavDestination.TIMER -> TimerScreen()
                                     NavDestination.CALENDAR -> CalendarScreen()
-                                    NavDestination.SETTINGS -> SettingsScreen()
+                                    NavDestination.UI_VS_UX -> UiVsUxScreen(
+                                        onNavigateBack = { mainViewModel.navigateBack() }
+                                    )
+                                    NavDestination.LANDING -> LandingScreen(
+                                        onGetStarted = { mainViewModel.navigateTo(NavDestination.DASHBOARD) }
+                                    )
+                                    NavDestination.SETTINGS -> SettingsScreen(
+                                        onReplayOnboarding = onReplayOnboarding
+                                    )
                                 }
                             }
                         }
@@ -815,6 +852,33 @@ fun MainScreen() {
                     },
                     onAddGoal = { title, dateStr, subId, sName, chapters, hours ->
                         goalsViewModel.addGoal(com.example.data.model.Goal(title = title, targetDateStr = dateStr, subjectId = subId, subjectName = sName, targetChaptersCount = chapters, targetStudyHours = hours))
+                    },
+                    onAddQuickNote = { subId, title, content, tags, priority ->
+                        syllabusViewModel.addQuickNote(
+                            subjectId = subId,
+                            title = title,
+                            content = content,
+                            tags = tags,
+                            priority = priority
+                        )
+                    }
+                )
+            }
+
+            // Quick Note Modal (Instant text-based study thoughts capture)
+            if (showQuickNoteModal) {
+                QuickNoteModal(
+                    subjects = subjects,
+                    preselectedSubjectId = mainViewModel.selectedSubjectId.value,
+                    onDismiss = { showQuickNoteModal = false },
+                    onSaveNote = { subId, title, content, tags, priority ->
+                        syllabusViewModel.addQuickNote(
+                            subjectId = subId,
+                            title = title,
+                            content = content,
+                            tags = tags,
+                            priority = priority
+                        )
                     }
                 )
             }

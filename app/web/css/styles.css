@@ -58,7 +58,7 @@
   --primary-container: #d2e7de;
   --on-primary: #ffffff;
   --text-main: #13241e;
-  --text-muted: #537066;
+  --text-muted: #405850;
   --border-color: #cdded6;
   
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -88,6 +88,24 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body, 
+.app-container, 
+.sidebar, 
+.topbar, 
+.content-container, 
+.card, 
+.btn, 
+.stat-card, 
+.subject-card, 
+.progress-bar-container, 
+.modal-content, 
+.bottom-nav {
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {

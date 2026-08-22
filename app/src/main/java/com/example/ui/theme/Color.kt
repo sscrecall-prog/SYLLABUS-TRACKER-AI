@@ -2,70 +2,96 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Bento Grid Theme Colors - Warm Organic & Academic Forest Aesthetic
-val BrandForestGreen = Color(0xFF2D4F1E)
-val BrandForestGreenLight = Color(0xFF437030)
-val BrandForestGreenDark = Color(0xFF1B3313)
-val BrandMoss = Color(0xFF3B5E28)
+// ==========================================
+// SYLLABUS TRACKER - AI COMMAND CENTER THEME
+// ==========================================
 
-val BrandWarmCream = Color(0xFFF5E6CC)
-val BrandCreamLight = Color(0xFFFAF2E6)
-val BrandCreamDark = Color(0xFFE8D4B0)
-val BrandSand = Color(0xFFF0E5D3)
+// Primary Palette
+val ElectricBlue = Color(0xFF6EC2FD)
+val ElectricBlueDark = Color(0xFF389DF2)
+val ElectricBlueGlow = Color(0x406EC2FD)
+val ElectricCyanLight = Color(0xFFE0F4FF)
 
-val BrandTerracotta = Color(0xFFE27D60)
-val BrandTerracottaLight = Color(0xFFEA9982)
-val BrandTerracottaDark = Color(0xFFC45A3C)
+val SoftMint = Color(0xFFBEFFCC)
+val SoftMintDark = Color(0xFF5EE88A)
+val SoftMintGlow = Color(0x40BEFFCC)
 
-val BrandCharcoal = Color(0xFF333B31)
-val BrandCharcoalLight = Color(0xFF5A6657)
-val BrandCharcoalDark = Color(0xFF1E241D)
+val AlertRed = Color(0xFFEF4648)
+val AlertRedDark = Color(0xFFD42D30)
+val AlertRedGlow = Color(0x40EF4648)
 
-// Background & Surface Colors (Light Mode - Warm Bento Paper & Cream Glass)
-val LightBg = Color(0xFFF8F5EE)
+// Dark Theme Surfaces (Deep, Premium Obsidian & Glass)
+val DarkBg = Color(0xFF15171D)
+val DarkSurface = Color(0xFF1B1E26)
+val DarkSurfaceElevated = Color(0xFF222733)
+val DarkSurfaceContainer = Color(0xFF1F2430)
+val DarkGlassCard = Color(0xFF191D26)
+val DarkGlassCardBorder = Color(0x1FFFFFFF)
+val DarkGlassBorder = Color(0x1FFFFFFF)
+
+// Dark Theme Typography
+val DarkTextPrimary = Color(0xFFFFFFFF)
+val DarkTextSecondary = Color(0xFF94A3B8)
+val DarkTextMuted = Color(0xFF64748B)
+
+// Light Theme / Day Mode
+val LightBg = Color(0xFFF4F7FB)
 val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceContainer = Color(0xFFF2ECE1)
+val LightSurfaceContainer = Color(0xFFE8EEF5)
 val LightGlassCard = Color(0xFFFFFFFF)
-val LightGlassBorder = Color(0x1F2D4F1E)
-val LightTextPrimary = Color(0xFF1A2417)
-val LightTextSecondary = Color(0xFF4A5A46)
-val LightTextMuted = Color(0xFF758772)
+val LightGlassBorder = Color(0x1F15171D)
+val LightTextPrimary = Color(0xFF0F172A)
+val LightTextSecondary = Color(0xFF334155) // Slate 700 - high contrast (> 7.5:1)
+val LightTextMuted = Color(0xFF475569)     // Slate 600 - comfortable contrast (> 5.0:1 on off-white)
 
-// Background & Surface Colors (Warm Cream Mode - Academic Vintage Parchment Aesthetic)
-val WarmCreamBg = Color(0xFFF7F2E8)
+// Warm Cream Mode (Maintained for theme switching compatibility)
+val WarmCreamBg = Color(0xFFF7F4EE)
 val WarmCreamSurface = Color(0xFFFFFDF9)
-val WarmCreamSurfaceContainer = Color(0xFFECE2D0)
+val WarmCreamSurfaceContainer = Color(0xFFECE5D8)
 val WarmCreamGlassCard = Color(0xFFFFFDF9)
-val WarmCreamGlassBorder = Color(0x2E2D4F1E)
-val WarmCreamTextPrimary = Color(0xFF2A2118)
-val WarmCreamTextSecondary = Color(0xFF5E5040)
-val WarmCreamTextMuted = Color(0xFF8C7C6B)
+val WarmCreamGlassBorder = Color(0x2615171D)
+val WarmCreamTextPrimary = Color(0xFF1E293B)
+val WarmCreamTextSecondary = Color(0xFF334155)
+val WarmCreamTextMuted = Color(0xFF475569)
 
-// Background & Surface Colors (Dark Mode - Deep Forest Midnight Bento with High Contrast)
-val DarkBg = Color(0xFF101610)
-val DarkSurface = Color(0xFF182218)
-val DarkSurfaceContainer = Color(0xFF202C20)
-val DarkGlassCard = Color(0xFF182218)
-val DarkGlassBorder = Color(0x38A5D6A7)
-val DarkTextPrimary = Color(0xFFF6F8F5) // Ultra-crisp off-white for primary text
-val DarkTextSecondary = Color(0xFFBAC8B7) // High contrast secondary text
-val DarkTextMuted = Color(0xFF889B84)
+// Backwards compatibility aliases for existing codebase
+val BrandForestGreen = ElectricBlue
+val BrandForestGreenLight = ElectricCyanLight
+val BrandForestGreenDark = ElectricBlueDark
+val BrandMoss = Color(0xFF4FA8E8)
 
-// Status Colors - Clear & High Contrast in both Light & Dark modes
-val StatusNotStarted = Color(0xFFA5B2A2)
-val StatusLearning = Color(0xFF29B6F6)
-val StatusInProgress = Color(0xFFFFA726)
-val StatusCompleted = Color(0xFF4CAF50)
-val StatusRevisionDue = Color(0xFFBA68C8)
-val StatusWeak = Color(0xFFEF5350)
-val StatusMastered = Color(0xFFFFCA28)
+val BrandTerracotta = AlertRed
+val BrandTerracottaLight = Color(0xFFFF7A7C)
+val BrandTerracottaDark = AlertRedDark
 
-// Subject Default Accent Colors
-val SubjectGS = Color(0xFF2D4F1E)
-val SubjectEnglish = Color(0xFF303F9F)
-val SubjectReasoning = Color(0xFF7B1FA2)
-val SubjectMaths = Color(0xFFE27D60)
-val SubjectComputer = Color(0xFF00796B)
-val SubjectCustom1 = Color(0xFFC2185B)
-val SubjectCustom2 = Color(0xFF0288D1)
-val SubjectCustom3 = Color(0xFFE65100)
+val BrandWarmCream = SoftMint
+val BrandCreamLight = Color(0xFFE6FFE9)
+val BrandCreamDark = Color(0xFFA6F7B8)
+val BrandSand = Color(0xFFD6F5DE)
+
+val BrandCharcoal = DarkSurface
+val BrandCharcoalLight = DarkSurfaceElevated
+val BrandCharcoalDark = DarkBg
+
+// Status Colors - Futuristic High-Contrast Mapping
+val WarningOrange = Color(0xFFF97316)
+val AmberGold = Color(0xFFF59E0B)
+val StatusNotStarted = Color(0xFF64748B)
+val StatusLearning = ElectricBlue
+val StatusInProgress = AmberGold
+val StatusCompleted = SoftMint
+val StatusRevisionDue = Color(0xFFA78BFA) // Violet Lavender
+val StatusWeak = AlertRed
+val StatusMastered = Color(0xFF34D399) // Emerald Mint
+
+// Subject Accent Colors (Futuristic Holographic Spectrum)
+val SubjectGS = Color(0xFF6EC2FD)       // Electric Cyan / Blue
+val SubjectEnglish = Color(0xFFA78BFA)  // Electric Lavender / Indigo
+val SubjectReasoning = Color(0xFFF472B6)// Holographic Pink
+val SubjectMaths = Color(0xFF38BDF8)    // Sky Blue
+val SubjectComputer = Color(0xFF34D399) // Emerald Mint
+val SubjectCustom1 = Color(0xFFFB923C)  // Bright Coral
+val SubjectCustom2 = Color(0xFF818CF8)  // Periwinkle Blue
+val SubjectCustom3 = Color(0xFFFBBF24)  // Golden Amber
+
+val CenterFabPurple = Color(0xFF6EC2FD)

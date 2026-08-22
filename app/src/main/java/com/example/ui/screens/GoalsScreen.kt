@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,15 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Goal
-import com.example.ui.components.GlassCard
-import com.example.ui.components.GradientCard
-import com.example.ui.components.LinearSyllabusBar
+import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.NavDestination
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +37,8 @@ fun GoalsScreen(
 
     val goals by goalsViewModel.goals.collectAsState()
     val subjects by subjectViewModel.subjects.collectAsState()
+    val appSettings by goalsViewModel.appSettings.collectAsState()
+    val studySessions by goalsViewModel.studySessions.collectAsState()
 
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var goalTitle by remember { mutableStateOf("") }
@@ -47,6 +49,7 @@ fun GoalsScreen(
 
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val now = System.currentTimeMillis()
+    var selectedGoalHorizon by remember { mutableIntStateOf(0) } // 0: Daily, 1: Weekly
 
     LazyColumn(
         modifier = Modifier
@@ -99,6 +102,61 @@ fun GoalsScreen(
             }
         }
 
+        // Daily / Weekly Horizon Switcher
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf("☀️ Daily Commitment", "📅 Weekly Benchmark").forEachIndexed { index, label ->
+                    val isSelected = selectedGoalHorizon == index
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) ElectricBlue else Color.Transparent)
+                            .clickable { selectedGoalHorizon = index }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color(0xFF071B2B) else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+        // Daily or Weekly Target Progress Card
+        item {
+            if (selectedGoalHorizon == 0) {
+                DailyStudyGoalCard(
+                    dailyTargetMinutes = appSettings.dailyTargetMinutes,
+                    studySessions = studySessions,
+                    onUpdateDailyTargetHours = { hours ->
+                        goalsViewModel.updateDailyTargetHours(hours)
+                    },
+                    onStartTimer = { onNavigate(NavDestination.TIMER) }
+                )
+            } else {
+                WeeklyStudyGoalCard(
+                    weeklyTargetMinutes = appSettings.weeklyTargetMinutes,
+                    studySessions = studySessions,
+                    onUpdateWeeklyTargetHours = { hours ->
+                        goalsViewModel.updateWeeklyTargetHours(hours)
+                    },
+                    onStartTimer = { onNavigate(NavDestination.TIMER) }
+                )
+            }
+        }
+
         // Add Goal Action Bar
         item {
             Row(
@@ -129,8 +187,8 @@ fun GoalsScreen(
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 30.dp),
-                    shape = RoundedCornerShape(16.dp)
+                        .padding(vertical = 12.dp),
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -138,14 +196,24 @@ fun GoalsScreen(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Default.TrackChanges, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No Goals Set Yet", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        MinimalStudyEmptyStateIllustration(size = 120.dp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("No Goals Set Yet", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Add targets to keep your exam preparation focused and timely.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "Add milestone targets to keep your syllabus completion focused and timely.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { showAddGoalDialog = true }) {
-                            Text("+ Create First Goal")
+                        Button(
+                            onClick = { showAddGoalDialog = true },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Create First Goal", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

@@ -155,8 +155,21 @@ fun AnalyticsScreen(
             }
         }
 
-        // 1.5 SPRINT 5 ADVANCED ANALYTICS WINDOW SELECTOR & LONG-TERM METRICS
-        if (advAnalytics != null) {
+        val isAnalyticsEmpty = overallStats.totalChapters == 0 ||
+            (studySessions.isEmpty() && mockTests.isEmpty() && overallStats.completedChapters == 0 && overallStats.totalStudyMinutes == 0)
+
+        if (isAnalyticsEmpty) {
+            item {
+                AnalyticsEmptyStateCard(
+                    onStartTimer = { onNavigate(NavDestination.TIMER) },
+                    onLogMockTest = { onNavigate(NavDestination.MOCK_TESTS) },
+                    onBrowseSyllabus = { onNavigate(NavDestination.SYLLABUS) },
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        } else {
+            // 1.5 SPRINT 5 ADVANCED ANALYTICS WINDOW SELECTOR & LONG-TERM METRICS
+            if (advAnalytics != null) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
@@ -901,6 +914,7 @@ fun AnalyticsScreen(
                     }
                 }
             }
+        }
         }
     }
 }

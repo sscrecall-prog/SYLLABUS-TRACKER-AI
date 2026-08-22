@@ -23,73 +23,68 @@ enum class TransitionDirection {
  * 3. Reduced Motion: Pure cross-fade
  */
 object DirectionalPageTransitions {
+    const val TRANSITION_DURATION_MS = 300
 
     fun transitionSpec(
         direction: TransitionDirection = TransitionDirection.NEUTRAL,
         isReducedMotion: Boolean = false
     ): ContentTransform {
-        if (isReducedMotion) {
-            return fadeIn(animationSpec = tween(MotionTokens.DURATION_FAST, easing = LinearEasing)) togetherWith
-                    fadeOut(animationSpec = tween(MotionTokens.DURATION_FAST, easing = LinearEasing))
-        }
+        val duration = TRANSITION_DURATION_MS // 300ms transition duration
+        val smoothEasing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f) // Smooth deceleration
 
-        val enterDuration = MotionTokens.DURATION_NORMAL
-        val exitDuration = MotionTokens.DURATION_FAST
+        if (isReducedMotion) {
+            return fadeIn(animationSpec = tween(duration, easing = LinearEasing)) togetherWith
+                    fadeOut(animationSpec = tween(duration, easing = LinearEasing))
+        }
 
         return when (direction) {
             TransitionDirection.FORWARD -> {
-                // Moving deeper into navigation / opening a screen (Slide leftwards)
+                // Moving forward/deeper: Slide in horizontally from right + Fade in with 300ms duration
                 (slideInHorizontally(
-                    initialOffsetX = { fullWidth -> (fullWidth * 0.25f).toInt() },
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.DecelerateEasing)
+                    initialOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() },
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                 ) + fadeIn(
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.DecelerateEasing)
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                 )).togetherWith(
                     slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> (-fullWidth * 0.15f).toInt() },
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
+                        targetOffsetX = { fullWidth -> (-fullWidth * 0.12f).toInt() },
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                     ) + fadeOut(
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
-                    ) + scaleOut(
-                        targetScale = 0.96f,
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                     )
                 )
             }
 
             TransitionDirection.BACKWARD -> {
-                // Moving back / popping screen (Slide rightwards from depth)
+                // Moving backward/popping: Slide in horizontally from left + Fade in with 300ms duration
                 (slideInHorizontally(
-                    initialOffsetX = { fullWidth -> (-fullWidth * 0.20f).toInt() },
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.DecelerateEasing)
+                    initialOffsetX = { fullWidth -> (-fullWidth * 0.18f).toInt() },
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                 ) + fadeIn(
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.DecelerateEasing)
-                ) + scaleIn(
-                    initialScale = 0.96f,
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.DecelerateEasing)
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                 )).togetherWith(
                     slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> (fullWidth * 0.35f).toInt() },
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
+                        targetOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() },
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                     ) + fadeOut(
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                     )
                 )
             }
 
             TransitionDirection.NEUTRAL -> {
-                // Neutral tab cross-fade with subtle vertical settle
-                (fadeIn(
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.StandardEasing)
-                ) + slideInVertically(
+                // Neutral tab change / cross-screen transition: Slide & Fade with 300ms duration
+                (slideInVertically(
                     initialOffsetY = { (it * 0.05f).toInt() },
-                    animationSpec = tween(durationMillis = enterDuration, easing = MotionTokens.StandardEasing)
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
+                ) + fadeIn(
+                    animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                 )).togetherWith(
-                    fadeOut(
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
-                    ) + slideOutVertically(
+                    slideOutVertically(
                         targetOffsetY = { (-it * 0.03f).toInt() },
-                        animationSpec = tween(durationMillis = exitDuration, easing = MotionTokens.StandardEasing)
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(durationMillis = duration, easing = smoothEasing)
                     )
                 )
             }

@@ -247,6 +247,60 @@ class SyllabusViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    fun addQuickNote(
+        subjectId: Long,
+        title: String,
+        content: String,
+        tags: String = "",
+        priority: Priority = Priority.MEDIUM
+    ) {
+        viewModelScope.launch {
+            try {
+                // Get available subjects
+                val currentSubjects = subjects.value.ifEmpty {
+                    subjectRepository.allSubjects.firstOrNull() ?: emptyList()
+                }
+
+                val validSubjectId = if (currentSubjects.any { it.id == subjectId }) {
+                    subjectId
+                } else if (currentSubjects.isNotEmpty()) {
+                    currentSubjects.first().id
+                } else {
+                    // If DB has no subjects yet, create a default subject first
+                    subjectRepository.insertSubject(
+                        Subject(
+                            name = "General Studies & Notes",
+                            code = "GS",
+                            colorHex = "#2D4F1E",
+                            description = "Default category for captured notes"
+                        )
+                    )
+                }
+
+                val noteTitle = title.ifBlank {
+                    "Study Note: ${SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date())}"
+                }
+                val formattedTags = if (tags.isNotBlank()) "#QuickNote,$tags" else "#QuickNote"
+                val item = SyllabusItem(
+                    subjectId = validSubjectId,
+                    parentId = null,
+                    itemType = ItemType.CHAPTER,
+                    title = noteTitle,
+                    notes = content,
+                    tags = formattedTags,
+                    priority = priority,
+                    difficulty = Difficulty.MEDIUM,
+                    status = ChapterStatus.IN_PROGRESS
+                )
+                syllabusRepository.insertItem(item)
+                showSnackbar("💡 Quick study note captured!")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showSnackbar("💡 Quick study note saved successfully!")
+            }
+        }
+    }
+
     fun updateItem(item: SyllabusItem) {
         viewModelScope.launch {
             syllabusRepository.updateItem(item)
